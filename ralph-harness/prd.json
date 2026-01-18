@@ -1,0 +1,30 @@
+[
+  {
+    "category": "core",
+    "description": "Create a helloworld.py script that prints 'Hello from Ralph'",
+    "steps": [
+      "Create helloworld.py",
+      "Ensure it prints the correct string"
+    ],
+    "passes": true
+  },
+  {
+    "category": "test",
+    "description": "Add a unit test for helloworld.py and ensure it passes",
+    "steps": [
+      "Create test_helloworld.py",
+      "Run the test to verify it passes"
+    ],
+    "passes": true
+  },
+  {
+    "category": "documentation",
+    "description": "Create a README.md file for the project",
+    "steps": [
+      "Create README.md",
+      "Add title 'Ralph Harness Demo'",
+      "Add brief description of how to run the project"
+    ],
+    "passes": false
+  }
+]

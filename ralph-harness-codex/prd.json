@@ -1,0 +1,22 @@
+[
+  {
+    "category": "meta",
+    "description": "Define repo-specific scope for Ralph",
+    "steps": [
+      "Add a repo-specific scope section to ralph-prompt.md (what files are in/out of scope)",
+      "Align README.md guidance with the scope described in ralph-prompt.md",
+      "Verify scope notes are concise and avoid conflicting instructions"
+    ],
+    "passes": true
+  },
+  {
+    "category": "quality",
+    "description": "Define feedback loops that must pass",
+    "steps": [
+      "List exact commands for lint/test/typecheck",
+      "State if failing commands should block commits",
+      "Note any environment prerequisites"
+    ],
+    "passes": false
+  }
+]

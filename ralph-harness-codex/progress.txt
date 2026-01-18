@@ -1,0 +1,10 @@
+
+- Task: Updated PRD meta steps to repo-specific scope requirements (PRD: meta/Define repo-specific scope for Ralph)
+  Decisions: Focused scope steps on ralph-prompt.md + README alignment to keep iterations small
+  Files: prd.json
+  Blockers: none
+
+- Task: Added repo-specific scope guidance (PRD: meta/Define repo-specific scope for Ralph)
+  Decisions: Kept scope list concise and limited to repo files to avoid conflicts
+  Files: ralph-prompt.md, README.md, prd.json
+  Blockers: none

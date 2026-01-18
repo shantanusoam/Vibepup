@@ -1,0 +1,4 @@
+Completed Create helloworld.py. Notes: Created script that prints "Hello from Ralph".
+Completed Add a unit test for helloworld.py. Notes: Refactored helloworld.py to be testable and added test_helloworld.py.
+Completed Ensure the test passes. Notes: Ran python3 test_helloworld.py and it passed.
+Completed Create README.md file for the project. Notes: Created README.md with title 'Ralph Harness Demo' and instructions for running the project.
