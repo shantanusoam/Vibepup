@@ -1,0 +1,172 @@
+#!/bin/bash
+set -e
+
+# Ralph CLI - Global Autonomous Agent
+# Usage: ralph [iterations] [--watch]
+
+ITERATIONS=5
+WATCH_MODE="false"
+
+# Parse Args
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --watch) WATCH_MODE="true"; shift ;;
+        *) ITERATIONS="$1"; shift ;;
+    esac
+done
+
+# 1. Determine Engine Directory (Global Brain)
+SOURCE=${BASH_SOURCE[0]}
+while [ -L "$SOURCE" ]; do
+  DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+  SOURCE=$(readlink "$SOURCE")
+  [[ $SOURCE != /* ]] && SOURCE=$DIR/$SOURCE
+done
+ENGINE_DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+
+# 2. Determine Project Directory (Local Context)
+PROJECT_DIR="$(pwd)"
+
+echo "🤖 Ralph Global Agent v2.0"
+echo "   Engine:  $ENGINE_DIR"
+echo "   Context: $PROJECT_DIR"
+if [[ "$WATCH_MODE" == "true" ]]; then
+    echo "   Mode:    👀 WATCH (Waiting for PRD changes)"
+else
+    echo "   Mode:    🏃 RUN ($ITERATIONS iterations)"
+fi
+echo "----------------------------------------"
+
+# 3. Check/Init Local Config
+if [ ! -f "$PROJECT_DIR/prd.json" ]; then
+  echo "⚠️  No prd.json found."
+  echo "   Initializing..."
+  cat > "$PROJECT_DIR/prd.json" <<EOF
+[
+  {
+    "category": "discovery",
+    "description": "Initialize repo-map.md with project architecture",
+    "steps": ["Explore structure", "Summarize key folders", "Write repo-map.md"],
+    "passes": false
+  }
+]
+EOF
+  touch "$PROJECT_DIR/progress.txt" "$PROJECT_DIR/repo-map.md"
+  echo "✅ Initialized. Edit prd.json and run 'ralph' again."
+  exit 0
+fi
+
+touch "$PROJECT_DIR/progress.txt" "$PROJECT_DIR/repo-map.md" "$PROJECT_DIR/review-feedback.txt"
+
+# 4. Define Agent Functions
+MODEL_PRIMARY="google/antigravity-claude-sonnet-4-5-thinking"
+MODEL_REVIEWER="google/gemini-2.5-pro" # Fast reviewer
+
+run_agent_opencode() {
+    opencode run "Proceed with task. Read prompt.md. Review previous feedback in review-feedback.txt if any." \
+        --file "$ENGINE_DIR/prompt.md" \
+        --file "$PROJECT_DIR/prd.json" \
+        --file "$PROJECT_DIR/progress.txt" \
+        --file "$PROJECT_DIR/repo-map.md" \
+        --file "$PROJECT_DIR/review-feedback.txt" \
+        --agent general \
+        --model "$1"
+}
+
+run_reviewer() {
+    # Generate diff of staged changes (or last commit if clean)
+    git diff --cached > "$PROJECT_DIR/diff.patch" 2>/dev/null || true
+    if [ ! -s "$PROJECT_DIR/diff.patch" ]; then return 0; fi # No diff, nothing to review
+
+    echo "🧐 Running Peer Review..."
+    REVIEW_RES=$(opencode run "Review this code patch." \
+        --file "$ENGINE_DIR/agents/reviewer.md" \
+        --file "$PROJECT_DIR/diff.patch" \
+        --file "$PROJECT_DIR/prd.json" \
+        --agent general \
+        --model "$MODEL_REVIEWER")
+    
+    echo "$REVIEW_RES"
+    if echo "$REVIEW_RES" | grep -q "<review>FAIL</review>"; then
+        return 1
+    fi
+    return 0
+}
+
+# 5. Main Loop
+LAST_HASH=""
+i=1
+
+while true; do
+  # WATCH MODE LOGIC
+  if [[ "$WATCH_MODE" == "true" ]]; then
+    CURRENT_HASH=$(md5sum "$PROJECT_DIR/prd.json" | awk '{print $1}')
+    if [[ "$CURRENT_HASH" == "$LAST_HASH" ]]; then
+      sleep 2
+      continue
+    fi
+    if [[ -n "$LAST_HASH" ]]; then echo "👀 PRD Changed. Starting cycle..."; fi
+    LAST_HASH="$CURRENT_HASH"
+    i=1 # Reset counter
+  fi
+
+  # Exit condition for non-watch mode
+  if [[ "$WATCH_MODE" != "true" ]] && ((i > ITERATIONS)); then
+     echo "⏸️  Max iterations reached."
+     break
+  fi
+
+  echo ""
+  echo "🔁 Loop $i"
+  
+  # GIT SYNC
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    # Only sync if clean to avoid messes
+    if [ -z "$(git status --porcelain)" ]; then
+        echo "🔄 Checking for remote updates..."
+        git fetch origin >/dev/null 2>&1 || true
+        BEHIND=$(git rev-list --count HEAD..@{u} 2>/dev/null || echo 0)
+        if (( BEHIND > 0 )); then
+            echo "⬇️  Pulling $BEHIND updates..."
+            git pull --rebase >/dev/null 2>&1 || echo "⚠️ Pull failed."
+        fi
+    fi
+  fi
+
+  # RUN AGENT
+  echo "   Using: $MODEL_PRIMARY"
+  set +e
+  RESPONSE=$(run_agent_opencode "$MODEL_PRIMARY")
+  EXIT_CODE=$?
+  set -e
+
+  if [ $EXIT_CODE -ne 0 ] || [ -z "$RESPONSE" ]; then
+    echo "❌ Agent failed this iteration."
+    # If using watch mode, we just wait for next change or retry
+    if [[ "$WATCH_MODE" == "true" ]]; then sleep 5; continue; else continue; fi
+  fi
+
+  echo "$RESPONSE"
+
+  # PEER REVIEW (Only if changes were made and not complete)
+  if ! echo "$RESPONSE" | grep -q "<promise>COMPLETE</promise>"; then
+      # If we successfully reviewed, clear feedback. If failed, loop continues and agent sees feedback.
+      if run_reviewer; then
+          echo "✅ Review Passed."
+          echo "" > "$PROJECT_DIR/review-feedback.txt" # Clear feedback
+      else
+          echo "❌ Review Failed. Feedback recorded for next loop."
+          # Don't increment iteration, force agent to fix it? 
+          # Or just let next loop handle it. Let's let next loop handle it.
+      fi
+  fi
+
+  if echo "$RESPONSE" | grep -q "<promise>COMPLETE</promise>"; then
+    echo "✅ All tasks complete."
+    if [[ "$WATCH_MODE" != "true" ]]; then exit 0; fi
+    echo "   Waiting for new tasks in prd.json..."
+  fi
+
+  ((i++))
+  sleep 1
+done
