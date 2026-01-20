@@ -18,23 +18,23 @@ WATCH_MODE="false"
 # Model Priority: Build Phase (Implementation)
 # High-speed/specialized coding models first, then heavy thinkers, then generic fallbacks
 BUILD_MODELS=(
-    "gpt-5.2-codex"
-    "claude-sonnet"
-    "gemini-3-pro-preview"
-    "gemini-flash"
-    "gpt-4o"
+    "github-copilot/gpt-5.2-codex"
+    "github-copilot/claude-sonnet-4.5"
+    "github-copilot/gemini-3-pro-preview"
+    "github-copilot/grok-code-fast-1"
+    "github-copilot/gpt-4o"
 )
 
 # Model Priority: Plan Phase (Reasoning/Architecture)
 # Deep thinking models for mapping and complex task breakdown
 PLAN_MODELS=(
-    "claude-opus-4.5-thinking"
-    "gpt-5.2-thinking"
-    "gemini-3-pro"
+    "github-copilot/claude-opus-4.5"
+    "github-copilot/gpt-5.2"
+    "github-copilot/gemini-2.5-pro"
 )
 
 # Reviewer Model (Fast Check)
-MODEL_REVIEWER="gemini-flash"
+MODEL_REVIEWER="github-copilot/gemini-3-flash-preview"
 
 # --- Setup Directories ---
 SOURCE=${BASH_SOURCE[0]}
