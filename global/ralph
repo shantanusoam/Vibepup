@@ -181,6 +181,8 @@ run_agent() {
     fi
 
     # Execute Agent
+    # We pipe to tee to show output in real-time AND save to file
+    echo "   Thinking..."
     opencode run "Proceed with task. $PROMPT_SUFFIX" \
         --file "$SYSTEM_PROMPT" \
         --file "$PROJECT_DIR/prd.md" \
@@ -188,7 +190,7 @@ run_agent() {
         --file "$PROJECT_DIR/repo-map.md" \
         --file "$ITER_DIR/progress.tail.log" \
         --agent general \
-        --model "$MODEL" > "$ITER_DIR/agent_response.txt"
+        --model "$MODEL" | tee "$ITER_DIR/agent_response.txt"
 }
 
 # --- Main Loop ---
