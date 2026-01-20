@@ -17,20 +17,31 @@ WATCH_MODE="false"
 
 # Model Priority: Build Phase (Implementation)
 # High-speed/specialized coding models first, then heavy thinkers, then generic fallbacks
-BUILD_MODELS=(
+# Tier 1: Github Copilot (Standard)
+# Tier 2: Github Copilot (Enterprise)
+# Tier 3: OpenAI (Direct)
+# Tier 4: Google (Direct)
+# Tier 5: Zen (Opencode Fallback)
+BUILD_MODELS_PREF=(
     "github-copilot/gpt-5.2-codex"
     "github-copilot/claude-sonnet-4.5"
-    "github-copilot/gemini-3-pro-preview"
-    "github-copilot/grok-code-fast-1"
-    "github-copilot/gpt-4o"
+    "github-copilot-enterprise/gpt-5.2-codex"
+    "github-copilot-enterprise/claude-sonnet-4.5"
+    "openai/gpt-5.2-codex"
+    "openai/gpt-5.1-codex-max"
+    "google/gemini-3-pro-preview"
+    "opencode/grok-code"
 )
 
 # Model Priority: Plan Phase (Reasoning/Architecture)
 # Deep thinking models for mapping and complex task breakdown
-PLAN_MODELS=(
+PLAN_MODELS_PREF=(
     "github-copilot/claude-opus-4.5"
-    "github-copilot/gpt-5.2"
-    "github-copilot/gemini-2.5-pro"
+    "github-copilot-enterprise/claude-opus-4.5"
+    "openai/gpt-5.2"
+    "google/antigravity-claude-opus-4-5-thinking"
+    "google/gemini-3-pro-preview"
+    "opencode/glm-4.7-free"
 )
 
 # Reviewer Model (Fast Check)
@@ -60,6 +71,42 @@ done
 echo "🤖 Ralph v3.0 (Split-Brain Architecture)"
 echo "   Engine:  $ENGINE_DIR"
 echo "   Context: $PROJECT_DIR"
+
+# --- Smart Model Discovery ---
+get_available_models() {
+    local PREF_MODELS=("$@")
+    local AVAILABLE_MODELS=()
+    
+    echo "🔍 Verifying available models..." >&2
+    
+    # Get list of all available models from opencode
+    local ALL_MODELS=$(opencode models --refresh | grep -E "^[a-z0-9-]+\/[a-z0-9.-]+" || true)
+    
+    for PREF in "${PREF_MODELS[@]}"; do
+        if echo "$ALL_MODELS" | grep -q "^$PREF$"; then
+            AVAILABLE_MODELS+=("$PREF")
+        fi
+    done
+    
+    # If no preferred models found, fallback to generic safe bets
+    if [ ${#AVAILABLE_MODELS[@]} -eq 0 ]; then
+        echo "⚠️  No preferred models found. Falling back to generic discovery." >&2
+        AVAILABLE_MODELS+=($(echo "$ALL_MODELS" | grep "gpt-4o" | head -n 1))
+        AVAILABLE_MODELS+=($(echo "$ALL_MODELS" | grep "claude-sonnet" | head -n 1))
+    fi
+    
+    echo "${AVAILABLE_MODELS[@]}"
+}
+
+# Pre-fetch available models for both phases
+echo "   Configuring Build Models..."
+read -r -a BUILD_MODELS <<< "$(get_available_models "${BUILD_MODELS_PREF[@]}")"
+echo "   Build Chain: ${BUILD_MODELS[*]}"
+
+echo "   Configuring Plan Models..."
+read -r -a PLAN_MODELS <<< "$(get_available_models "${PLAN_MODELS_PREF[@]}")"
+echo "   Plan Chain:  ${PLAN_MODELS[*]}"
+
 
 # --- Initialization & Migration ---
 if [ ! -f "$PROJECT_DIR/prd.md" ]; then
