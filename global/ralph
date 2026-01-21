@@ -173,8 +173,13 @@ run_agent() {
     
     local SYSTEM_PROMPT="$ENGINE_DIR/prompt.md"
     local PROMPT_SUFFIX=""
+    local EXTRA_ARGS=()
 
-    if [ "$PHASE" == "PLAN" ]; then
+    if [ "$DESIGN_MODE" == "true" ]; then
+        echo "   🎨 Design Mode Active: Injecting frontend-design skill..."
+        EXTRA_ARGS+=( "--file" "$HOME/.config/opencode/skills/frontend-design.md" )
+        PROMPT_SUFFIX="MODE: DESIGN + BUILD. Apply the frontend-design skill guidelines to all work."
+    elif [ "$PHASE" == "PLAN" ]; then
         PROMPT_SUFFIX="MODE: PLAN. Focus on exploring and mapping. Do NOT write implementation code yet."
     else
         PROMPT_SUFFIX="MODE: BUILD. Focus on completing tasks in prd.md."
@@ -189,6 +194,7 @@ run_agent() {
         --file "$PROJECT_DIR/prd.state.json" \
         --file "$PROJECT_DIR/repo-map.md" \
         --file "$ITER_DIR/progress.tail.log" \
+        "${EXTRA_ARGS[@]}" \
         --agent general \
         --model "$MODEL" | tee "$ITER_DIR/agent_response.txt"
 }

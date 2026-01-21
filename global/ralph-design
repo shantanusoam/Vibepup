@@ -1,0 +1,11 @@
+#!/bin/bash
+# ralph-design - Wrapper to run ralph in Design Mode
+
+# Get the directory of this script
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+echo "🎨 Activating Ralph Design Mode..."
+export DESIGN_MODE="true"
+
+# Execute the main ralph script, passing all arguments
+"$DIR/ralph" "$@"
