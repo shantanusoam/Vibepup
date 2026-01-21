@@ -61,8 +61,16 @@ RUNS_DIR="$PROJECT_DIR/.ralph/runs"
 mkdir -p "$RUNS_DIR"
 
 # --- Parse Args ---
+MODE="default"
+PROJECT_IDEA=""
+
 while [[ "$#" -gt 0 ]]; do
     case $1 in
+        new)
+            MODE="new"
+            PROJECT_IDEA="$2"
+            shift 2
+            ;;
         --watch) WATCH_MODE="true"; shift ;;
         *) ITERATIONS="$1"; shift ;;
     esac
@@ -106,6 +114,24 @@ echo "   Build Chain: ${BUILD_MODELS[*]}"
 echo "   Configuring Plan Models..."
 read -r -a PLAN_MODELS <<< "$(get_available_models "${PLAN_MODELS_PREF[@]}")"
 echo "   Plan Chain:  ${PLAN_MODELS[*]}"
+
+
+# --- Phase 0: The Architect (Genesis) ---
+if [ "$MODE" == "new" ]; then
+    echo ""
+    echo "🏗️  Phase 0: The Architect"
+    echo "   Idea: $PROJECT_IDEA"
+    
+    ARCHITECT_MODEL="${PLAN_MODELS[0]}"
+    echo "   Using: $ARCHITECT_MODEL"
+    
+    opencode run "PROJECT IDEA: $PROJECT_IDEA" \
+        --file "$ENGINE_DIR/agents/architect.md" \
+        --agent general \
+        --model "$ARCHITECT_MODEL"
+        
+    echo "✅ Architect initialization complete."
+fi
 
 
 # --- Initialization & Migration ---
