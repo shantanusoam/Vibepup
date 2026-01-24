@@ -98,10 +98,6 @@ Vibepup works out of the box, but you can tune his brain in `~/.config/ralph/con
 *   **Plan Mode**: When `repo-map.md` is missing, Vibepup explores and plans.
 *   **Build Mode**: When `repo-map.md` exists, Vibepup executes tasks from `prd.md`.
 
-## 🎨 Mascot Prompt (NanoBanan)
-Use this prompt to generate more assets for **Pummy**:
-
-> "Cute loyal corgi mascot wearing a tiny tool belt, holding a glowing code scroll, subtle cyberpunk neon accents (teal + magenta), warm orange fur, friendly smile, modern flat vector style, clean bold outlines, no text."
 
 ## License
 MIT
