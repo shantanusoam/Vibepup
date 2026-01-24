@@ -5,6 +5,8 @@
 [![npm version](https://badge.fury.io/js/vibepup.svg)](https://badge.fury.io/js/vibepup)
 ![License](https://img.shields.io/npm/l/vibepup)
 
+npm: https://www.npmjs.com/package/vibepup
+
 Vibepup is a robust, global CLI harness that turns any directory into an autonomous coding environment. It is designed for **Developer Experience (DX)**, safety, and vibe-coding resilience.
 
 **Mascot:** Pummy the cyberpunk corgi.
@@ -65,6 +67,11 @@ npm install -g vibepup
 ### 2. bunx (no global install)
 ```bash
 bunx vibepup --watch
+```
+
+### 2b. TUI mode (optional)
+```bash
+vibepup --tui
 ```
 
 ### 3. Clone & Setup (engine-only)
