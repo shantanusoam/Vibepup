@@ -2,6 +2,8 @@
 
 > "Fetch Code. Sit. Stay. Good Pup."
 
+![Corgi Pup Illustration](https://raw.githubusercontent.com/shantanusoam/Vibepup/refs/heads/gh-images/assets/corgi_pup_ilustration.png)
+
 [![npm version](https://badge.fury.io/js/vibepup.svg)](https://badge.fury.io/js/vibepup)
 ![License](https://img.shields.io/npm/l/vibepup)
 

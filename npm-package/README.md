@@ -2,6 +2,8 @@
 
 > **"Fetch Code. Sit. Stay. Good Pup."**
 
+![Corgi Pup Illustration](https://raw.githubusercontent.com/shantanusoam/Vibepup/refs/heads/gh-images/assets/corgi_pup_ilustration.png)
+
 Vibepup is a **Split-Brain Autonomous Agent Harness** that lives in your terminal. A loyal helper built for **DX-first, vibe-coding energy**.
 
 **Mascot:** Pummy the cyberpunk corgi.
