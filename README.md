@@ -1,8 +1,28 @@
-# 🤖 Ralph v3.2 - The "Split-Brain" Autonomous Agent
+# 🐾 Vibepup (formerly Ralph)
 
-Ralph is a robust, global CLI harness that turns any directory into an autonomous coding environment. It is designed for **Developer Experience (DX)**, safety, and resilience.
+> "Fetch Code. Sit. Stay. Good Pup."
 
-Unlike standard agents that get stuck in loops or overwrite their own memory, Ralph uses a **Split-Brain Architecture** to separate *Human Intent* from *Agent State*.
+[![npm version](https://badge.fury.io/js/vibepup.svg)](https://badge.fury.io/js/vibepup)
+![License](https://img.shields.io/npm/l/vibepup)
+
+Vibepup is a robust, global CLI harness that turns any directory into an autonomous coding environment. It is designed for **Developer Experience (DX)**, safety, and vibe-coding resilience.
+
+**Mascot:** Pummy the cyberpunk corgi.
+
+![Pummy Loop](https://raw.githubusercontent.com/shantanusoam/ralph-project/refs/heads/gh-images/assets/corgi_Loop.png)
+
+Unlike standard agents that get stuck in loops or overwrite their own memory, Vibepup uses a **Split-Brain Architecture** to separate *Human Intent* from *Agent State*.
+
+## ✨ The Vibe
+
+**Selling Points:**
+- DX-first onboarding
+- Vibe-coding friendly
+- Safe, loop-resistant agent harness
+- Minimal setup, works everywhere
+- Loyal helper with a cyberpunk-cute mascot
+
+![Pummy Checklist](https://raw.githubusercontent.com/shantanusoam/ralph-project/refs/heads/gh-images/assets/corgi_checklist.png)
 
 ## ✨ Key Features
 
@@ -37,14 +57,24 @@ Ralph assigns the "Right Brain" to the right task (configurable in `~/.config/op
 
 ## 🚀 Installation
 
-### 1. Clone & Setup
+### 1. npm (recommended)
+```bash
+npm install -g vibepup
+```
+
+### 2. bunx (no global install)
+```bash
+bunx vibepup --watch
+```
+
+### 3. Clone & Setup (engine-only)
 Clone this repository to your preferred location (e.g., `~/Projects/personal/ralph-project`):
 
 ```bash
 git clone https://github.com/shantanusoam/ralph-project.git ~/Projects/personal/ralph-project
 ```
 
-### 2. Global Symlink
+### 4. Global Symlink (engine-only)
 Make Ralph accessible from anywhere. **Important:** Use the absolute path.
 
 ```bash
@@ -55,7 +85,7 @@ chmod +x ~/Projects/personal/ralph-project/global/ralph
 sudo ln -sf ~/Projects/personal/ralph-project/global/ralph /usr/local/bin/ralph
 ```
 
-### 3. Verify
+### 5. Verify (engine-only)
 ```bash
 ralph --help
 # Should output: 🤖 Ralph v3.2 (Split-Brain Architecture) ...
@@ -66,14 +96,14 @@ ralph --help
 ## 🎮 Usage
 
 ### Initialize a New Project
-Navigate to any folder (empty or existing) and run Ralph:
+Navigate to any folder (empty or existing) and run Vibepup:
 
 ```bash
 cd ~/my-new-app
-ralph 1
+vibepup 1
 ```
 
-Ralph will detect missing files and initialize:
+Vibepup will detect missing files and initialize:
 - `prd.md` (Your task list)
 - `repo-map.md` (Architecture memory)
 - `prd.state.json` (Internal state)
@@ -85,15 +115,15 @@ Ralph will detect missing files and initialize:
     - [ ] Create Next.js app structure
     - [ ] Add Tailwind CSS
     ```
-2.  **Run Ralph**:
+2.  **Run Vibepup**:
     ```bash
-    ralph 5   # Run for 5 iterations
+    vibepup 5   # Run for 5 iterations
     ```
 3.  **Watch Mode (Recommended)**:
     ```bash
-    ralph --watch
+    vibepup --watch
     ```
-    In this mode, Ralph runs tasks until done. If you edit `prd.md` (e.g., add a new feature), Ralph **automatically detects the change**, resets the loop, and starts working on the new task immediately.
+    In this mode, Vibepup runs tasks until done. If you edit `prd.md` (e.g., add a new feature), Vibepup **automatically detects the change**, resets the loop, and starts working on the new task immediately.
 
 ---
 
@@ -114,13 +144,13 @@ BUILD_MODELS_PREF=(
 
 ## 🛠️ Troubleshooting
 
-**"Command not found: ralph"**
+**"Command not found: vibepup"**
 - Check your PATH: `echo $PATH`
-- Verify the symlink: `ls -l /usr/local/bin/ralph`
-- Ensure the target file is executable: `chmod +x ...`
+- Reinstall: `npm install -g vibepup`
+- Ensure `vibepup` is on your PATH
 
 **"Agent gets stuck on `npm init`"**
-- Ralph v3.2 has "Anti-Wizard" rules, but if it happens, kill the process (`Ctrl+C`) and add the config file manually (e.g., `package.json`) so Ralph can skip the interactive step.
+- Vibepup has "Anti-Wizard" rules, but if it happens, kill the process (`Ctrl+C`) and add the config file manually (e.g., `package.json`) so Vibepup can skip the interactive step.
 
 **"ModelNotFoundError"**
-- Run `opencode models --refresh` to update your local model cache. Ralph auto-discovers available models at startup.
+- Run `opencode models --refresh` to update your local model cache. Vibepup auto-discovers available models at startup.
