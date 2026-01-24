@@ -2,23 +2,24 @@
 
 > **"Fetch Code. Sit. Stay. Good Pup."**
 
-Vibepup is a **Split-Brain Autonomous Agent Harness** that lives in your terminal. It turns any directory into an autonomous coding environment with **DX-first, vibe-coding energy**.
+Vibepup is a **Split-Brain Autonomous Agent Harness** that lives in your terminal. A loyal helper built for **DX-first, vibe-coding energy**.
 
 **Mascot:** Pummy the cyberpunk corgi.
 
-![Vibepup Mascot](https://raw.githubusercontent.com/shantanusoam/ralph-project/refs/heads/gh-images/assets/corgi_Loop.png)
+![Pummy Loop](https://raw.githubusercontent.com/shantanusoam/ralph-project/refs/heads/gh-images/assets/corgi_Loop.png)
 
 [![npm version](https://badge.fury.io/js/vibepup.svg)](https://badge.fury.io/js/vibepup)
 ![License](https://img.shields.io/npm/l/vibepup)
 
 ## ✨ The Vibe
-Most AI agents are black boxes that overwrite your files and get stuck in loops. Vibepup is different. Loyal, friendly, a little meme-y — and built for real dev workflows.
+Most AI agents are black boxes that overwrite your files and get stuck in loops. Vibepup is different: loyal, friendly, meme-y, and built for real dev workflows.
 
 **Selling Points:**
 - DX-first onboarding
 - Vibe-coding friendly
 - Safe, loop-resistant agent harness
 - Minimal setup, works everywhere
+- Loyal helper with a cyberpunk-cute mascot
 
 *   **🧠 Split-Brain**: Keeps your instructions (`prd.md`) separate from internal state (`prd.state.json`). Edit tasks mid-run without breaking the agent.
 *   **🛡️ Anti-Wizard**: Refuses to run interactive commands that hang shells. Vibepup forces clarity.
@@ -26,7 +27,7 @@ Most AI agents are black boxes that overwrite your files and get stuck in loops.
 *   **🌈 Cyberpunk Corgi**: Cute, loyal, and ready to ship.
 *   **🧩 Friendly + Meme-y**: The tool feels fun without being unserious.
 
-![Checklist Mode](https://raw.githubusercontent.com/shantanusoam/ralph-project/refs/heads/gh-images/assets/corgi_checklist.png)
+![Pummy Checklist](https://raw.githubusercontent.com/shantanusoam/ralph-project/refs/heads/gh-images/assets/corgi_checklist.png)
 
 ## 🚀 Get Started
 

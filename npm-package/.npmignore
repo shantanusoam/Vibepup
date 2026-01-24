@@ -1,0 +1,3 @@
+# Keep package minimal
+*.log
+.DS_Store

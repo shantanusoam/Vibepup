@@ -2,9 +2,7 @@
   "name": "vibepup",
   "version": "1.0.0",
   "description": "A loyal, DX-first split-brain agent harness with cyberpunk vibes.",
-  "bin": {
-    "vibepup": "./bin/ralph.js"
-  },
+  "bin": "bin/ralph.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
