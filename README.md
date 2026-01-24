@@ -76,6 +76,11 @@ bunx vibepup --watch
 vibepup --tui
 ```
 
+### 2c. Free setup (one command)
+```bash
+vibepup free
+```
+
 ### 3. Clone & Setup (engine-only)
 Clone this repository to your preferred location (e.g., `~/Projects/personal/ralph-project`):
 
