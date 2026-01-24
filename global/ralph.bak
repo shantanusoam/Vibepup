@@ -2,27 +2,26 @@
 set -e
 
 # ==============================================================================
-# Ralph v3.1 - The "Split-Brain" Autonomous Agent Harness
+# Ralph v3.0 - The "Split-Brain" Autonomous Agent Harness
 # ==============================================================================
-
-# --- Hardened Environment (Anti-Interactive) ---
-export CI=1
-export GIT_TERMINAL_PROMPT=0
-export npm_config_yes=true
-export npm_config_audit=false
-export npm_config_fund=false
-export FORCE_COLOR=0
-export TERM=dumb
+# Features:
+# - Split PRD: prd.md (Human/Watch) vs prd.state.json (Agent/State)
+# - Phase Detection: PLAN (Architecture) vs BUILD (Coding)
+# - Smart Context: Rotates logs to prevent pollution
+# - Model Routing: Custom priority chains for different phases
+# ==============================================================================
 
 # --- Configuration ---
 ITERATIONS=5
 WATCH_MODE="false"
 
-# Watchdog Tunables
-RALPH_MAX_TURN_SECONDS=${RALPH_MAX_TURN_SECONDS:-900}     # 15 min hard cap
-RALPH_NO_OUTPUT_SECONDS=${RALPH_NO_OUTPUT_SECONDS:-180}   # 3m without output => stuck
-
 # Model Priority: Build Phase (Implementation)
+# High-speed/specialized coding models first, then heavy thinkers, then generic fallbacks
+# Tier 1: Github Copilot (Standard)
+# Tier 2: Github Copilot (Enterprise)
+# Tier 3: OpenAI (Direct)
+# Tier 4: Google (Direct) - Fallback only
+# Tier 5: Zen (Opencode Fallback)
 BUILD_MODELS_PREF=(
     "github-copilot/gpt-5.2-codex"
     "github-copilot/claude-sonnet-4.5"
@@ -37,6 +36,7 @@ BUILD_MODELS_PREF=(
 )
 
 # Model Priority: Plan Phase (Reasoning/Architecture)
+# Deep thinking models for mapping and complex task breakdown
 PLAN_MODELS_PREF=(
     "github-copilot/claude-opus-4.5"
     "github-copilot/gemini-3-pro-preview"
@@ -47,6 +47,9 @@ PLAN_MODELS_PREF=(
     "google/gemini-3-pro-preview"
     "opencode/glm-4.7-free"
 )
+
+# Reviewer Model (Fast Check)
+MODEL_REVIEWER="github-copilot/gemini-3-flash-preview"
 
 # --- Setup Directories ---
 SOURCE=${BASH_SOURCE[0]}
@@ -60,9 +63,6 @@ PROJECT_DIR="$(pwd)"
 RUNS_DIR="$PROJECT_DIR/.ralph/runs"
 
 mkdir -p "$RUNS_DIR"
-
-# Cleanup trap
-trap "pkill -P $$; exit" SIGINT SIGTERM
 
 # --- Parse Args ---
 MODE="default"
@@ -80,7 +80,7 @@ while [[ "$#" -gt 0 ]]; do
     esac
 done
 
-echo "🤖 Ralph v3.1 (Split-Brain Architecture)"
+echo "🤖 Ralph v3.0 (Split-Brain Architecture)"
 echo "   Engine:  $ENGINE_DIR"
 echo "   Context: $PROJECT_DIR"
 
@@ -91,6 +91,7 @@ get_available_models() {
     
     echo "🔍 Verifying available models..." >&2
     
+    # Get list of all available models from opencode
     local ALL_MODELS=$(opencode models --refresh | grep -E "^[a-z0-9-]+\/[a-z0-9.-]+" || true)
     
     for PREF in "${PREF_MODELS[@]}"; do
@@ -99,6 +100,7 @@ get_available_models() {
         fi
     done
     
+    # If no preferred models found, fallback to generic safe bets
     if [ ${#AVAILABLE_MODELS[@]} -eq 0 ]; then
         echo "⚠️  No preferred models found. Falling back to generic discovery." >&2
         AVAILABLE_MODELS+=($(echo "$ALL_MODELS" | grep "gpt-4o" | head -n 1))
@@ -108,6 +110,7 @@ get_available_models() {
     echo "${AVAILABLE_MODELS[@]}"
 }
 
+# Pre-fetch available models for both phases
 echo "   Configuring Build Models..."
 read -r -a BUILD_MODELS <<< "$(get_available_models "${BUILD_MODELS_PREF[@]}")"
 echo "   Build Chain: ${BUILD_MODELS[*]}"
@@ -139,16 +142,17 @@ fi
 if [ ! -f "$PROJECT_DIR/prd.md" ]; then
     if [ -f "$PROJECT_DIR/prd.json" ]; then
         echo "🔄 Migrating legacy prd.json to prd.md..."
+        # Simple jq extraction to markdown list
         jq -r '.[] | "- [ ] " + .description' "$PROJECT_DIR/prd.json" > "$PROJECT_DIR/prd.md"
         mv "$PROJECT_DIR/prd.json" "$PROJECT_DIR/prd.json.bak"
     else
         echo "⚠️  No prd.md found. Initializing..."
-        cat > "$PROJECT_DIR/prd.md" <<INNEREOF
+        cat > "$PROJECT_DIR/prd.md" <<EOF
 # Product Requirements Document (PRD)
 
 - [ ] Initialize repo-map.md with project architecture
 - [ ] Setup initial project structure
-INNEREOF
+EOF
     fi
 fi
 
@@ -165,6 +169,7 @@ touch "$PROJECT_DIR/progress.log"
 # --- Helper Functions ---
 
 detect_phase() {
+    # If repo-map is empty, we must PLAN first
     if [ ! -s "$PROJECT_DIR/repo-map.md" ]; then
         echo "PLAN"
         return
@@ -181,57 +186,14 @@ prepare_iteration_context() {
     local ITER_DIR="$RUNS_DIR/$ITER_ID"
     mkdir -p "$ITER_DIR"
     
+    # Create a tail of the progress log for the agent (Last 200 lines)
     tail -n 200 "$PROJECT_DIR/progress.log" > "$ITER_DIR/progress.tail.log"
     
+    # Symlink latest for easy debugging
     rm -f "$RUNS_DIR/latest"
     ln -s "$ITER_DIR" "$RUNS_DIR/latest"
     
     echo "$ITER_DIR"
-}
-
-run_with_watchdog () {
-  local log="$1"; shift
-  : > "$log"
-
-  # run in background and capture output
-  ( "$@" 2>&1 | tee -a "$log" ) &
-  local pid=$!
-  local start=$(date +%s)
-  local last=$start
-  local last_size=0
-
-  while kill -0 "$pid" 2>/dev/null; do
-    sleep 5
-    local now=$(date +%s)
-    local size=$(wc -c < "$log" 2>/dev/null || echo 0)
-
-    if (( size != last_size )); then
-      last="$now"
-      last_size="$size"
-    fi
-
-    if (( now - start > RALPH_MAX_TURN_SECONDS )); then
-      echo "[RALPH] TIMEOUT: killing opencode turn" >> "$log"
-      kill -INT "$pid" 2>/dev/null || true
-      sleep 3
-      kill -TERM "$pid" 2>/dev/null || true
-      sleep 1
-      kill -KILL "$pid" 2>/dev/null || true
-      return 124
-    fi
-
-    if (( now - last > RALPH_NO_OUTPUT_SECONDS )); then
-      echo "[RALPH] NO OUTPUT: likely waiting for input / hung tool" >> "$log"
-      kill -INT "$pid" 2>/dev/null || true
-      sleep 3
-      kill -TERM "$pid" 2>/dev/null || true
-      sleep 1
-      kill -KILL "$pid" 2>/dev/null || true
-      return 125
-    fi
-  done
-
-  wait "$pid"
 }
 
 run_agent() {
@@ -253,10 +215,10 @@ run_agent() {
         PROMPT_SUFFIX="MODE: BUILD. Focus on completing tasks in prd.md."
     fi
 
+    # Execute Agent
+    # We pipe to tee to show output in real-time AND save to file
     echo "   Thinking..."
-    
-    run_with_watchdog "$ITER_DIR/agent_response.txt" \
-        opencode run "Proceed with task. $PROMPT_SUFFIX" \
+    opencode run "Proceed with task. $PROMPT_SUFFIX" \
         --file "$SYSTEM_PROMPT" \
         --file "$PROJECT_DIR/prd.md" \
         --file "$PROJECT_DIR/prd.state.json" \
@@ -264,7 +226,7 @@ run_agent() {
         --file "$ITER_DIR/progress.tail.log" \
         "${EXTRA_ARGS[@]}" \
         --agent general \
-        --model "$MODEL"
+        --model "$MODEL" | tee "$ITER_DIR/agent_response.txt"
 }
 
 # --- Main Loop ---
@@ -273,17 +235,12 @@ i=1
 
 while true; do
     # Watch Mode Check
-    # Only restart if hash changed EXTERNALLY (since last accepted state)
     CURRENT_HASH=$(get_current_prd_hash)
     if [[ "$CURRENT_HASH" != "$LAST_HASH" ]]; then
         echo "👀 PRD Changed! Restarting loop..."
         echo "--- PRD CHANGED: RESTARTING LOOP ---" >> "$PROJECT_DIR/progress.log"
         LAST_HASH="$CURRENT_HASH"
-        
-        # Only reset counter if we are in infinite watch mode
-        if [[ "$WATCH_MODE" == "true" ]]; then
-            i=1
-        fi
+        i=1
     fi
 
     if [[ "$WATCH_MODE" != "true" ]] && ((i > ITERATIONS)); then
@@ -299,12 +256,14 @@ while true; do
     echo "🔁 Loop $i ($PHASE Phase)"
     echo "   Logs: $ITER_DIR"
 
+    # Select Models based on Phase
     if [ "$PHASE" == "PLAN" ]; then
         MODELS=("${PLAN_MODELS[@]}")
     else
         MODELS=("${BUILD_MODELS[@]}")
     fi
 
+    # Try models in priority order
     SUCCESS=false
     for MODEL in "${MODELS[@]}"; do
         echo "   Using: $MODEL"
@@ -319,23 +278,14 @@ while true; do
             SUCCESS=true
             echo "$RESPONSE"
             
+            # Check for completion
             if echo "$RESPONSE" | grep -q "<promise>COMPLETE</promise>"; then
                 echo "✅ Agent signaled completion."
-                if [[ "$WATCH_MODE" != "true" ]]; then 
-                    exit 0
-                else
-                    echo "⏸️  Project Complete. Waiting for changes in prd.md..."
-                    while [[ "$(get_current_prd_hash)" == "$LAST_HASH" ]]; do
-                        sleep 2
-                    done
-                    echo "👀 Change detected! Resuming..."
-                    i=1
-                    continue
-                fi
+                if [[ "$WATCH_MODE" != "true" ]]; then exit 0; fi
             fi
             break
         else
-            echo "   ⚠️  Model $MODEL failed (Exit: $EXIT_CODE). Falling back..."
+            echo "   ⚠️  Model $MODEL failed. Falling back..."
         fi
     done
 
@@ -343,9 +293,6 @@ while true; do
         echo "❌ All models failed this iteration."
         sleep 2
     fi
-
-    # Sync hash AFTER run so self-edits don't trigger restart
-    LAST_HASH=$(get_current_prd_hash)
 
     ((i++))
     sleep 1

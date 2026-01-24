@@ -1,4 +1,4 @@
-# 🤖 Ralph v3.1 - The "Split-Brain" Autonomous Agent
+# 🤖 Ralph v3.2 - The "Split-Brain" Autonomous Agent
 
 Ralph is a robust, global CLI harness that turns any directory into an autonomous coding environment. It is designed for **Developer Experience (DX)**, safety, and resilience.
 
@@ -13,17 +13,21 @@ Unlike standard agents that get stuck in loops or overwrite their own memory, Ra
     *   Tracks attempts, verification status, and errors without polluting your checklist.
     *   *Result:* You can edit requirements mid-run without breaking the agent's brain.
 
+### 🛡️ Safety & Hardening
+*   **Watchdog Protocol**: A built-in safety monitor that automatically kills any process taking longer than 15 minutes or hanging without output for 3 minutes.
+*   **Infinite Loop Protection**: In Watch Mode, if Ralph completes all tasks, he enters a low-power "Wait State", pausing execution until you modify `prd.md`. No more burning tokens on empty cycles.
+
 ### 🌓 Phase Detection
 Ralph automatically switches modes based on project maturity:
 1.  **PLAN Mode 🏗️**: Triggered when `repo-map.md` is empty. The agent explores `ls -R`, reads key files, and maps the architecture. **No coding allowed.**
 2.  **BUILD Mode 🔨**: Triggered when the map exists. The agent executes tasks from `prd.md` one by one.
 
-### ⚡ Hybrid Model Priority
-Ralph uses a "Gold Standard" fallback chain. It automatically discovers which models you have access to (via `opencode`) and uses the best available:
-1.  **Github Copilot** (Standard & Enterprise) - *Speed & Context*
-2.  **OpenAI** (GPT-5.2/4o) - *Raw Power*
-3.  **Google** (Gemini 3 Pro) - *Huge Context Window*
-4.  **Zen** (Grok/OpenCode) - *Resilient Fallback*
+### 🧠 Specialized Model Roles
+Ralph assigns the "Right Brain" to the right task (configurable in `~/.config/opencode/oh-my-opencode.json`):
+*   **The Architect (Sisyphus)**: `gpt-5.2-codex` for core logic and orchestration.
+*   **The Designer (Frontend)**: `gemini-3-pro-preview` for massive context window and UI tasks.
+*   **The Explorer (Explore)**: `grok-code-fast-1` for rapid codebase search.
+*   **The Sage (Oracle)**: `claude-opus-4.5` for deep reasoning and architecture validation.
 
 ### 👁️ Real-Time Visibility
 *   **Streaming Output**: See exactly what the agent is thinking and running in real-time. No more staring at a blank screen.
@@ -54,7 +58,7 @@ sudo ln -sf ~/Projects/personal/ralph-project/global/ralph /usr/local/bin/ralph
 ### 3. Verify
 ```bash
 ralph --help
-# Should output: 🤖 Ralph v3.1 (Split-Brain Architecture) ...
+# Should output: 🤖 Ralph v3.2 (Split-Brain Architecture) ...
 ```
 
 ---
@@ -116,7 +120,7 @@ BUILD_MODELS_PREF=(
 - Ensure the target file is executable: `chmod +x ...`
 
 **"Agent gets stuck on `npm init`"**
-- Ralph v3.1 has "Anti-Wizard" rules, but if it happens, kill the process (`Ctrl+C`) and add the config file manually (e.g., `package.json`) so Ralph can skip the interactive step.
+- Ralph v3.2 has "Anti-Wizard" rules, but if it happens, kill the process (`Ctrl+C`) and add the config file manually (e.g., `package.json`) so Ralph can skip the interactive step.
 
 **"ModelNotFoundError"**
 - Run `opencode models --refresh` to update your local model cache. Ralph auto-discovers available models at startup.
