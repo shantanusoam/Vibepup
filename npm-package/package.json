@@ -1,6 +1,6 @@
 {
   "name": "vibepup",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A loyal, DX-first split-brain agent harness with cyberpunk vibes.",
   "bin": {
     "vibepup": "bin/ralph.js"
