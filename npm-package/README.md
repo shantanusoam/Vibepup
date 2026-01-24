@@ -50,6 +50,11 @@ bunx vibepup --watch
 bun add -g vibepup
 ```
 
+### 1d. TUI mode (optional)
+```bash
+vibepup --tui
+```
+
 ### 2. Fetch!
 Go to any empty folder and tell Vibepup what to build.
 
@@ -80,6 +85,12 @@ vibepup --watch
 ```
 In watch mode, Vibepup keeps working until the PRD is done. If you edit `prd.md` (e.g., add "- [ ] Add dark mode"), he smells the change and gets back to work immediately.
 
+### 4. TUI Mode
+```bash
+vibepup --tui
+```
+TUI mode provides a Bubble Tea interface with puppy animation, quick mode selection, and a clean launch experience.
+
 ## ⚙️ Configuration
 Vibepup works out of the box. If `opencode` is missing, Vibepup will try to install it on Linux/macOS and then guide you. You can also set up a free tier:
 
@@ -92,6 +103,14 @@ If you cannot open a browser on the target machine:
 ```bash
 opencode auth print-token antigravity
 export OPENCODE_ANTIGRAVITY_TOKEN="<token>"
+```
+
+### TUI build (optional)
+TUI requires Go 1.22+.
+```bash
+cd npm-package/tui
+
+go build -o vibepup-tui
 ```
 
 Vibepup also supports manual config in `~/.config/ralph/config.json`:
