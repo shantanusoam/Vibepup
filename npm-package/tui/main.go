@@ -30,7 +30,9 @@ type model struct {
 	frame     int
 	args      []string
 	form      *huh.Form
+	newForm   *huh.Form
 	selected  string
+	newIdea   string
 	spring    harmonica.Spring
 	pos       float64
 	velocity  float64
@@ -54,8 +56,18 @@ func initialModel() model {
 					huh.NewOption("Watch (recommended)", "watch"),
 					huh.NewOption("Run 5 iterations", "run"),
 					huh.NewOption("New project from idea", "new"),
+					huh.NewOption("Free setup (opencode + auth)", "free"),
 				).
 				Value(&m.selected),
+		),
+	)
+	m.newForm = huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("Describe your project idea").
+				Prompt("Idea: ").
+				Placeholder("A vibe-coded project").
+				Value(&m.newIdea),
 		),
 	)
 
@@ -71,6 +83,10 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.String() == "ctrl+c" || msg.String() == "esc" {
+			return m, tea.Quit
+		}
 	case time.Time:
 		switch m.state {
 		case stateSplash:
@@ -92,24 +108,36 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.pos, m.velocity = m.spring.Update(m.pos, m.velocity, m.targetPos)
 			return m, tea.Tick(time.Millisecond*80, func(t time.Time) tea.Msg { return t })
 		}
-	case tea.KeyMsg:
-		if m.state == stateSetup {
-			var cmd tea.Cmd
-			fm, cmd := m.form.Update(msg)
-			m.form = fm.(*huh.Form)
-			if m.form.State == huh.StateCompleted {
+	}
+
+	switch m.state {
+	case stateSetup:
+		fm, cmd := m.form.Update(msg)
+		m.form = fm.(*huh.Form)
+		if m.form.State == huh.StateCompleted {
+			if m.selected == "new" {
 				m.state = stateRunning
-				return m, launchCmd(m.selected, m.args)
+				return m, m.newForm.Init()
+			}
+			m.state = stateRunning
+			return m, launchCmd(m.selected, m.args)
+		}
+		return m, cmd
+	case stateRunning:
+		if m.selected == "new" {
+			fm, cmd := m.newForm.Update(msg)
+			m.newForm = fm.(*huh.Form)
+			if m.newForm.State == huh.StateCompleted {
+				idea := strings.TrimSpace(m.newIdea)
+				if idea == "" {
+					idea = "A vibe-coded project"
+				}
+				return m, launchCmd("new", append([]string{idea}, m.args...))
 			}
 			return m, cmd
 		}
 	}
 
-	if m.state == stateSetup {
-		fm, cmd := m.form.Update(msg)
-		m.form = fm.(*huh.Form)
-		return m, cmd
-	}
 	return m, nil
 }
 
@@ -181,12 +209,22 @@ func (m model) View() string {
 		return boxStyle.Render(
 			lipgloss.JoinVertical(lipgloss.Left,
 				lipgloss.NewStyle().Foreground(babyBlue).Bold(true).Render("♥ Setup Phase"),
+				lipgloss.NewStyle().Foreground(gray).Render("Tip: choose Free setup to auto-configure opencode"),
 				"",
 				m.form.View(),
 			),
 		)
-
 	case stateRunning:
+		if m.selected == "new" {
+			return boxStyle.Render(
+				lipgloss.JoinVertical(lipgloss.Left,
+					lipgloss.NewStyle().Foreground(babyBlue).Bold(true).Render("♥ New Project"),
+					lipgloss.NewStyle().Foreground(gray).Render("Describe what you want Vibepup to build"),
+					"",
+					m.newForm.View(),
+				),
+			)
+		}
 		status := lipgloss.NewStyle().Foreground(hotPink).Bold(true).Render("♥ Vibepup is Working ♥")
 		mode := lipgloss.NewStyle().Foreground(babyBlue).Render("MODE: " + strings.ToUpper(m.selected))
 		spinner := sparkles[m.frame%len(sparkles)]

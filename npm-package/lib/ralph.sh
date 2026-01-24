@@ -68,9 +68,14 @@ trap "pkill -P $$; exit" SIGINT SIGTERM
 # --- Parse Args ---
 MODE="default"
 PROJECT_IDEA=""
+FREE_MODE="false"
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
+        free)
+            FREE_MODE="true"
+            shift
+            ;;
         new)
             MODE="new"
             PROJECT_IDEA="$2"
@@ -85,6 +90,11 @@ echo "🐾 Vibepup v1.0 (CLI Mode)"
 echo "   Engine:  $ENGINE_DIR"
 echo "   Context: $PROJECT_DIR"
 
+echo "   Tips:"
+echo "   - Run 'vibepup free' for free-tier setup"
+echo "   - Run 'vibepup new ""My idea""' to bootstrap a project"
+echo "   - Run 'vibepup --tui' for a guided interface"
+
 type -p opencode >/dev/null 2>&1 || {
     if command -v curl >/dev/null 2>&1; then
         UNAME=$(uname -s)
@@ -96,15 +106,39 @@ type -p opencode >/dev/null 2>&1 || {
 }
 
 if ! command -v opencode >/dev/null 2>&1; then
-    echo "❌ opencode not found. Vibepup requires opencode to run."
-    echo "   Install with one of:"
-    echo "   - curl -fsSL https://opencode.ai/install | bash"
-    echo "   - npm install -g opencode-ai"
-    echo "   - brew install anomalyco/tap/opencode"
-    echo "   Free-tier option:"
-    echo "   - npm install -g opencode-antigravity-auth"
-    echo "   - opencode auth login antigravity"
-    exit 127
+    if [[ "$FREE_MODE" == "true" ]]; then
+        echo "🔧 Free setup: installing opencode..."
+        if command -v npm >/dev/null 2>&1; then
+            npm install -g opencode-ai opencode-antigravity-auth || true
+        else
+            echo "❌ npm not found. Install Node.js or use:"
+            echo "   curl -fsSL https://opencode.ai/install | bash"
+            exit 127
+        fi
+    else
+        echo "❌ opencode not found. Vibepup requires opencode to run."
+        echo "   Install with one of:"
+        echo "   - curl -fsSL https://opencode.ai/install | bash"
+        echo "   - npm install -g opencode-ai"
+        echo "   - brew install anomalyco/tap/opencode"
+        echo "   Free-tier option:"
+        echo "   - vibepup free"
+        exit 127
+    fi
+fi
+
+if [[ "$FREE_MODE" == "true" ]]; then
+    echo "✨ Vibepup Free Setup"
+    echo "   1) Installing auth plugin"
+    if command -v npm >/dev/null 2>&1; then
+        npm install -g opencode-antigravity-auth || true
+    fi
+    echo "   2) Starting Google auth"
+    opencode auth login antigravity || true
+    echo "   3) Refreshing models"
+    opencode models --refresh || true
+    echo "✅ Free setup complete. Run 'vibepup --watch' next."
+    exit 0
 fi
 
 # --- Smart Model Discovery ---

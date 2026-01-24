@@ -57,6 +57,11 @@ bun add -g vibepup
 vibepup --tui
 ```
 
+### 1e. Free setup (one command)
+```bash
+vibepup free
+```
+
 ### 2. Fetch!
 Go to any empty folder and tell Vibepup what to build.
 
@@ -94,7 +99,13 @@ vibepup --tui
 TUI mode provides a Bubble Tea interface with puppy animation, quick mode selection, and a clean launch experience.
 
 ## ⚙️ Configuration
-Vibepup works out of the box. If `opencode` is missing, Vibepup will try to install it on Linux/macOS and then guide you. You can also set up a free tier:
+Vibepup works out of the box. For the easiest free-tier bootstrap, run:
+
+```bash
+vibepup free
+```
+
+If `opencode` is missing, Vibepup will try to install it on Linux/macOS and then guide you. You can also set up a free tier manually:
 
 ```bash
 npm install -g opencode-antigravity-auth
