@@ -85,6 +85,28 @@ echo "🐾 Vibepup v1.0 (CLI Mode)"
 echo "   Engine:  $ENGINE_DIR"
 echo "   Context: $PROJECT_DIR"
 
+type -p opencode >/dev/null 2>&1 || {
+    if command -v curl >/dev/null 2>&1; then
+        UNAME=$(uname -s)
+        if [ "$UNAME" = "Linux" ] || [ "$UNAME" = "Darwin" ]; then
+            echo "⚠️  opencode not found. Installing..."
+            curl -fsSL https://opencode.ai/install | bash || true
+        fi
+    fi
+}
+
+if ! command -v opencode >/dev/null 2>&1; then
+    echo "❌ opencode not found. Vibepup requires opencode to run."
+    echo "   Install with one of:"
+    echo "   - curl -fsSL https://opencode.ai/install | bash"
+    echo "   - npm install -g opencode-ai"
+    echo "   - brew install anomalyco/tap/opencode"
+    echo "   Free-tier option:"
+    echo "   - npm install -g opencode-antigravity-auth"
+    echo "   - opencode auth login antigravity"
+    exit 127
+fi
+
 # --- Smart Model Discovery ---
 get_available_models() {
     local PREF_MODELS=("$@")
@@ -92,7 +114,8 @@ get_available_models() {
     
     echo "🔍 Verifying available models..." >&2
     
-    local ALL_MODELS=$(opencode models --refresh | grep -E "^[a-z0-9-]+\/[a-z0-9.-]+" || true)
+    local ALL_MODELS
+    ALL_MODELS=$(opencode models --refresh 2>/dev/null | grep -E "^[a-z0-9-]+/[a-z0-9.-]+" || true)
     
     for PREF in "${PREF_MODELS[@]}"; do
         if echo "$ALL_MODELS" | grep -q "^$PREF$"; then
@@ -104,6 +127,11 @@ get_available_models() {
         echo "⚠️  No preferred models found. Falling back to generic discovery." >&2
         AVAILABLE_MODELS+=($(echo "$ALL_MODELS" | grep "gpt-4o" | head -n 1))
         AVAILABLE_MODELS+=($(echo "$ALL_MODELS" | grep "claude-sonnet" | head -n 1))
+    fi
+
+    if [ ${#AVAILABLE_MODELS[@]} -eq 0 ]; then
+        AVAILABLE_MODELS=("opencode/grok-code")
+        echo "⚠️  Using fallback model: opencode/grok-code" >&2
     fi
     
     echo "${AVAILABLE_MODELS[@]}"
@@ -265,7 +293,6 @@ run_agent() {
         --file "$PROJECT_DIR/repo-map.md" \
         --file "$ITER_DIR/progress.tail.log" \
         "${EXTRA_ARGS[@]}" \
-        --agent general \
         --model "$MODEL"
 }
 
@@ -316,6 +343,11 @@ while true; do
         set -e
         
         RESPONSE=$(cat "$ITER_DIR/agent_response.txt")
+
+        if echo "$RESPONSE" | grep -qi "not supported\|ModelNotFoundError\|Make sure the model is enabled"; then
+            echo "   ⚠️  Model $MODEL not supported. Falling back..."
+            continue
+        fi
         
         if [ $EXIT_CODE -eq 0 ] && [ -n "$RESPONSE" ]; then
             SUCCESS=true

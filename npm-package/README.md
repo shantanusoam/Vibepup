@@ -20,6 +20,7 @@ Most AI agents are black boxes that overwrite your files and get stuck in loops.
 - Safe, loop-resistant agent harness
 - Minimal setup, works everywhere
 - Loyal helper with a cyberpunk-cute mascot
+- Helpful onboarding for free-tier access
 
 *   **🧠 Split-Brain**: Keeps your instructions (`prd.md`) separate from internal state (`prd.state.json`). Edit tasks mid-run without breaking the agent.
 *   **🛡️ Anti-Wizard**: Refuses to run interactive commands that hang shells. Vibepup forces clarity.
@@ -80,7 +81,20 @@ vibepup --watch
 In watch mode, Vibepup keeps working until the PRD is done. If you edit `prd.md` (e.g., add "- [ ] Add dark mode"), he smells the change and gets back to work immediately.
 
 ## ⚙️ Configuration
-Vibepup works out of the box, but you can tune his brain in `~/.config/ralph/config.json`:
+Vibepup works out of the box. If `opencode` is missing, Vibepup will try to install it on Linux/macOS and then guide you. You can also set up a free tier:
+
+```bash
+npm install -g opencode-antigravity-auth
+opencode auth login antigravity
+```
+
+If you cannot open a browser on the target machine:
+```bash
+opencode auth print-token antigravity
+export OPENCODE_ANTIGRAVITY_TOKEN="<token>"
+```
+
+Vibepup also supports manual config in `~/.config/ralph/config.json`:
 
 ```json
 {
