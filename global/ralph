@@ -76,6 +76,7 @@ while [[ "$#" -gt 0 ]]; do
             shift 2
             ;;
         --watch) WATCH_MODE="true"; shift ;;
+        --design) DESIGN_MODE="true"; shift ;;
         *) ITERATIONS="$1"; shift ;;
     esac
 done
@@ -91,10 +92,19 @@ get_available_models() {
     
     echo "🔍 Verifying available models..." >&2
     
-    local ALL_MODELS=$(opencode models --refresh | grep -E "^[a-z0-9-]+\/[a-z0-9.-]+" || true)
+    # Check for override
+    if [ -n "$RALPH_MODEL_OVERRIDE" ]; then
+        echo "⚠️  Model Override Active: $RALPH_MODEL_OVERRIDE" >&2
+        echo "$RALPH_MODEL_OVERRIDE"
+        return
+    fi
+    
+    # Relaxed grep to catch more valid model ID formats (e.g. provider/model-name:version)
+    local ALL_MODELS=$(opencode models --refresh | grep -v "Refreshing" || true)
     
     for PREF in "${PREF_MODELS[@]}"; do
-        if echo "$ALL_MODELS" | grep -q "^$PREF$"; then
+        # Use exact match check against the list to avoid partial substring matches
+        if echo "$ALL_MODELS" | grep -Fq "$PREF"; then
             AVAILABLE_MODELS+=("$PREF")
         fi
     done
@@ -247,10 +257,18 @@ run_agent() {
         echo "   🎨 Design Mode Active: Injecting frontend-design skill..."
         EXTRA_ARGS+=( "--file" "$HOME/.config/opencode/skills/frontend-design.md" )
         PROMPT_SUFFIX="MODE: DESIGN + BUILD. Apply the frontend-design skill guidelines to all work."
-    elif [ "$PHASE" == "PLAN" ]; then
+    fi
+
+    if [ -n "$RALPH_EXTRA_ARGS" ]; then
+        echo "   ⚙️  Injecting custom args: $RALPH_EXTRA_ARGS"
+        read -r -a EXTRA_CLI_ARGS <<< "$RALPH_EXTRA_ARGS"
+        EXTRA_ARGS+=("${EXTRA_CLI_ARGS[@]}")
+    fi
+
+    if [ "$PHASE" == "PLAN" ]; then
         PROMPT_SUFFIX="MODE: PLAN. Focus on exploring and mapping. Do NOT write implementation code yet."
     else
-        PROMPT_SUFFIX="MODE: BUILD. Focus on completing tasks in prd.md."
+        PROMPT_SUFFIX="${PROMPT_SUFFIX:-MODE: BUILD. Focus on completing tasks in prd.md.}"
     fi
 
     echo "   Thinking..."

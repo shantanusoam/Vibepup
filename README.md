@@ -164,7 +164,31 @@ BUILD_MODELS_PREF=(
 - Ensure `vibepup` is on your PATH
 
 **"Agent gets stuck on `npm init`"**
-- Vibepup has "Anti-Wizard" rules, but if it happens, kill the process (`Ctrl+C`) and add the config file manually (e.g., `package.json`) so Vibepup can skip the interactive step.
+- Vibepup has "Anti-Wizard" rules that set default values (e.g., `npm_config_yes=true`), but some wizards ignore these. If it happens, kill the process (`Ctrl+C`) and run the command manually or add the config file (e.g., `package.json`) yourself so Vibepup can skip the interactive step.
 
 **"ModelNotFoundError"**
 - Run `opencode models --refresh` to update your local model cache. Vibepup auto-discovers available models at startup.
+
+## 🧰 Advanced Usage
+
+### Custom CLI Arguments
+You can pass extra flags to the underlying `opencode` agent by setting the `RALPH_EXTRA_ARGS` environment variable.
+
+```bash
+# Pass a custom session ID or other flags
+RALPH_EXTRA_ARGS="--session my-session-123" vibepup --watch
+```
+
+### Model Overrides
+Want to test a specific model without editing the script? Use the override variable:
+
+```bash
+RALPH_MODEL_OVERRIDE="openai/gpt-4o" vibepup
+```
+
+## 💡 Tips & Tricks
+
+*   **Handling "Stuck" Agents**: If Ralph keeps trying the same failing command, edit `prd.state.json` and delete the failing entry. This forces a "memory wipe" of that specific failure.
+*   **Custom Skills**: Ralph respects your local OpenCode skills. If you have a `~/.config/opencode/skills/my-skill.md`, you can instruct Ralph to use it in `prd.md` via natural language: *"Use the my-skill skill to deploy this."*
+*   **Debug Mode**: To see exactly what arguments are being passed to the agent, inspect the `run_agent` function in `global/ralph`.
+
