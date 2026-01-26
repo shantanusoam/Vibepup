@@ -150,12 +150,26 @@ export OPENCODE_ANTIGRAVITY_TOKEN="<token>"
 ```
 
 ### TUI build (optional)
-TUI requires Go 1.22+.
+TUI requires Go 1.22+. If you skip this, `vibepup --tui` will try `go run .` and needs `go` in your PATH.
 ```bash
 cd npm-package/tui
-
-go build -o vibepup-tui
+go build -o vibepup-tui .
 ```
+Or from `npm-package`: `npm run build:tui`.
+
+### Run locally (development)
+To test the Vibepup CLI from this repo without publishing:
+
+1. **Build the TUI** (needed for `--tui`; avoids "spawn go ENOENT"):
+   ```bash
+   cd npm-package && npm run build:tui
+   ```
+2. **Run the local package:**
+   ```bash
+   cd npm-package && npx . --tui
+   ```
+   Or run the CLI engine: `npx . --watch`, `npx . 3`, etc.
+3. **Optional – use globally while developing:** `cd npm-package && npm link`, then `vibepup --tui` (or `vibepup --watch`) from any directory.
 
 Vibepup also supports manual config in `~/.config/ralph/config.json`:
 
