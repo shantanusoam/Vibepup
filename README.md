@@ -199,3 +199,13 @@ RALPH_MODEL_OVERRIDE="openai/gpt-4o" vibepup
 *   **Handling "Stuck" Agents**: If Ralph keeps trying the same failing command, edit `prd.state.json` and delete the failing entry. This forces a "memory wipe" of that specific failure.
 *   **Custom Skills**: Ralph respects your local OpenCode skills. If you have a `~/.config/opencode/skills/my-skill.md`, you can instruct Ralph to use it in `prd.md` via natural language: *"Use the my-skill skill to deploy this."*
 *   **Debug Mode**: To see exactly what arguments are being passed to the agent, inspect the `run_agent` function in `global/ralph`.
+
+## 🤝 Contributing
+
+1) Fork + branch: `feature/<topic>` or `chore/<topic>`.
+2) Prereqs: Node (for the CLI), Go 1.22+ (for the TUI in `npm-package/tui`).
+3) Dev loop:
+   - CLI: edit as usual; there are no repo-wide tests yet.
+   - TUI: `cd npm-package/tui`, run `gofmt -w .`, and smoke with `go run . --no-alt --force-run` in a real TTY.
+4) Keep changes focused; avoid adding dependencies unless necessary.
+5) Open a PR with a short summary (what/why), mention any flags/UX changes, and note if you couldn’t exercise the TTY path.

@@ -17,6 +17,14 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
+	"github.com/mattn/go-isatty"
+
+	"vibepup-tui/animations"
+	"vibepup-tui/config"
+	"vibepup-tui/motion"
+	"vibepup-tui/persona"
+	"vibepup-tui/theme"
+	"vibepup-tui/ui"
 )
 
 // --- Personality & Copy ---
@@ -36,19 +44,6 @@ var puns = []string{
 	"Barking at the compiler.",
 	"Digging for memory leaks.",
 	"Chasing tail - I mean, tail -f logs.",
-}
-
-var darkJokes = []string{
-	"I'd explain the code, but I don't want to ruin the surprise.",
-	"Your code is bad and you should feel bad. Just kidding (mostly).",
-	"Deleting production database... jk, unless?",
-	"I see dead pixels.",
-	"This will only hurt a lot.",
-	"Replacing you with a shell script in 3... 2...",
-	"Error: user error. Definitely not me.",
-	"I love the smell of burning CPU in the morning.",
-	"Resistance is futile. You will be refactored.",
-	"Hope you saved your work. I didn't.",
 }
 
 var tips = []string{
@@ -73,48 +68,48 @@ const (
 	stateDone
 )
 
-// Theme Colors
-var (
-	colorPink       = lipgloss.Color("#FFB7C5") // Sakura Pink
-	colorHotPink    = lipgloss.Color("#FF1493") // Deep Pink
-	colorCyan       = lipgloss.Color("#00FFFF") // Cyber Cyan
-	colorPurple     = lipgloss.Color("#BD93F9") // Dracula Purple
-	colorDarkGray   = lipgloss.Color("#44475a") // Selection/Comment
-	colorBackground = lipgloss.Color("#282a36") // Dracula Background
-	colorText       = lipgloss.Color("#f8f8f2") // Dracula Foreground
-)
+type styleSet struct {
+	box    lipgloss.Style
+	title  lipgloss.Style
+	tip    lipgloss.Style
+	status lipgloss.Style
+	text   lipgloss.Style
+}
 
-// Styles
-var (
-	styleBox = lipgloss.NewStyle().
+func buildStyles(t theme.Theme) styleSet {
+	return styleSet{
+		box: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(colorHotPink).
+			BorderForeground(t.Border).
 			Padding(1, 2).
 			Margin(1, 1).
-			Background(colorBackground)
-
-	styleTitle = lipgloss.NewStyle().
-			Foreground(colorBackground).
-			Background(colorHotPink).
+			Background(t.Background),
+		title: lipgloss.NewStyle().
+			Foreground(t.Background).
+			Background(t.Accent).
 			Bold(true).
 			Padding(0, 1).
-			MarginBottom(1)
-
-	styleTip = lipgloss.NewStyle().
-			Foreground(colorCyan).
+			MarginBottom(1),
+		tip: lipgloss.NewStyle().
+			Foreground(t.AccentAlt).
 			Italic(true).
-			MarginTop(1)
-
-	styleStatus = lipgloss.NewStyle().
-			Foreground(colorPurple).
-			Bold(true)
-)
+			MarginTop(1),
+		status: lipgloss.NewStyle().
+			Foreground(t.Highlight).
+			Bold(true),
+		text: lipgloss.NewStyle().
+			Foreground(t.Foreground),
+	}
+}
 
 // --- Key Bindings ---
 
 type KeyMap struct {
-	Quit key.Binding
-	Help key.Binding
+	Quit      key.Binding
+	Help      key.Binding
+	NextTheme key.Binding
+	NextAnim  key.Binding
+	NextSnark key.Binding
 }
 
 func DefaultKeyMap() KeyMap {
@@ -127,16 +122,28 @@ func DefaultKeyMap() KeyMap {
 			key.WithKeys("?"),
 			key.WithHelp("?", "wat?"),
 		),
+		NextTheme: key.NewBinding(
+			key.WithKeys("t"),
+			key.WithHelp("t", "next theme"),
+		),
+		NextAnim: key.NewBinding(
+			key.WithKeys("a"),
+			key.WithHelp("a", "next anim"),
+		),
+		NextSnark: key.NewBinding(
+			key.WithKeys("s"),
+			key.WithHelp("s", "next snark"),
+		),
 	}
 }
 
 func (k KeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Help, k.Quit}
+	return []key.Binding{k.Help, k.Quit, k.NextTheme, k.NextAnim, k.NextSnark}
 }
 
 func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Help, k.Quit},
+		{k.Help, k.Quit, k.NextTheme, k.NextAnim, k.NextSnark},
 	}
 }
 
@@ -162,15 +169,40 @@ type model struct {
 	currentTip string
 	currentPun string
 	punTimer   int
+	flags      config.Flags
+	theme      theme.Theme
+	styles     styleSet
+	snark      persona.SnarkLevel
+	anim       animations.Preset
+	animFrame  int
+	motion     motion.Engine
+	statusBar  ui.StatusBar
+	proc       *exec.Cmd
+	procCancel context.CancelFunc
 }
 
-func initialModel() model {
+type processStartedMsg struct {
+	cmd    *exec.Cmd
+	cancel context.CancelFunc
+	done   <-chan processDoneMsg
+}
+
+type processDoneMsg struct {
+	err error
+}
+
+func initialModel(flags config.Flags) model {
 	args := []string{"--watch"}
 	if len(os.Args) > 1 {
 		args = os.Args[1:]
 	}
 
 	spring := harmonica.NewSpring(harmonica.FPS(60), 6.0, 0.2)
+	th := theme.Get(flags.Theme)
+	styles := buildStyles(th)
+	snark := persona.ParseSnark(flags.Snark)
+	motionEngine := motion.New(flags.PerfLow, flags.Quiet)
+	animPreset := animations.Get(flags.Anim)
 
 	m := model{
 		state:      stateSplash,
@@ -183,6 +215,13 @@ func initialModel() model {
 		keys:       DefaultKeyMap(),
 		currentTip: tips[0],
 		currentPun: puns[0],
+		flags:      flags,
+		theme:      th,
+		styles:     styles,
+		snark:      snark,
+		motion:     motionEngine,
+		anim:       animPreset,
+		statusBar:  ui.StatusBar{Theme: th},
 	}
 
 	// Setup Form
@@ -218,7 +257,48 @@ func (m model) Init() tea.Cmd {
 	log.SetLevel(log.InfoLevel)
 	log.SetReportCaller(false)
 	log.SetTimeFormat("")
-	return tea.Tick(time.Millisecond*50, func(t time.Time) tea.Msg { return t }) // Faster tick for smoother anim
+	return m.motion.Next()
+}
+
+func (m *model) stopProc() {
+	if m.proc != nil && m.proc.ProcessState == nil {
+		if m.procCancel != nil {
+			m.procCancel()
+		}
+		_ = m.proc.Process.Kill()
+	}
+	m.proc = nil
+	m.procCancel = nil
+}
+
+func nextTheme(name string) theme.Theme {
+	all := theme.All()
+	for i, t := range all {
+		if t.Name == name {
+			return all[(i+1)%len(all)]
+		}
+	}
+	return all[0]
+}
+
+func nextAnim(name string) animations.Preset {
+	all := animations.All()
+	for i, a := range all {
+		if a.Name == name {
+			return all[(i+1)%len(all)]
+		}
+	}
+	return all[0]
+}
+
+func nextSnark(s persona.SnarkLevel) persona.SnarkLevel {
+	levels := []persona.SnarkLevel{persona.Mild, persona.Spicy, persona.Unhinged}
+	for i, v := range levels {
+		if v == s {
+			return levels[(i+1)%len(levels)]
+		}
+	}
+	return persona.Mild
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -247,21 +327,34 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.keys.Quit):
+			m.stopProc()
 			return m, tea.Quit
 		case key.Matches(msg, m.keys.Help):
 			m.help.ShowAll = !m.help.ShowAll
+		case key.Matches(msg, m.keys.NextTheme):
+			m.theme = nextTheme(m.theme.Name)
+			m.styles = buildStyles(m.theme)
+			m.statusBar = ui.StatusBar{Theme: m.theme}
+		case key.Matches(msg, m.keys.NextAnim):
+			m.anim = nextAnim(m.anim.Name)
+			m.animFrame = 0
+		case key.Matches(msg, m.keys.NextSnark):
+			m.snark = nextSnark(m.snark)
 		}
 
-	case time.Time:
+	case motion.TickMsg:
 		m.frame++
 		m.punTimer++
+		if n := len(m.anim.Frames); n > 0 {
+			m.animFrame = (m.animFrame + 1) % n
+		}
 
 		// Rotate tips/puns
 		if m.punTimer > 80 { // Every ~4 seconds
 			m.punTimer = 0
-			m.currentPun = puns[rand.Intn(len(puns))]
-			if rand.Float32() > 0.7 { // 30% chance of dark joke
-				m.currentPun = darkJokes[rand.Intn(len(darkJokes))]
+			m.currentPun = persona.Quip(persona.StateWaiting, m.snark, nil)
+			if m.currentPun == "" {
+				m.currentPun = puns[rand.Intn(len(puns))]
 			}
 			m.currentTip = tips[rand.Intn(len(tips))]
 		}
@@ -272,7 +365,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = stateSetup
 				return m, m.form.Init()
 			}
-			return m, tea.Tick(time.Millisecond*50, func(t time.Time) tea.Msg { return t })
+			return m, m.motion.Next()
 
 		case stateRunning:
 			// Smoother bouncy animation using spring physics
@@ -284,11 +377,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			m.pos, m.velocity = m.spring.Update(m.pos, m.velocity, m.targetPos)
-			return m, tea.Tick(time.Millisecond*50, func(t time.Time) tea.Msg { return t })
+			return m, m.motion.Next()
 
 		default:
-			return m, tea.Tick(time.Millisecond*50, func(t time.Time) tea.Msg { return t })
+			return m, m.motion.Next()
 		}
+
+	case processStartedMsg:
+		m.proc = msg.cmd
+		m.procCancel = msg.cancel
+		if msg.done != nil {
+			cmds = append(cmds, func() tea.Msg { return <-msg.done })
+		}
+
+	case processDoneMsg:
+		if msg.err != nil {
+			m.currentPun = "Process bailed: " + msg.err.Error()
+		}
+		m.stopProc()
 	}
 
 	switch m.state {
@@ -301,7 +407,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.newForm.Init()
 			}
 			m.state = stateRunning
-			return m, launchCmd(m.selected, m.args)
+			return m, startProcess(m.selected, m.args, m.flags)
 		}
 		cmds = append(cmds, cmd)
 
@@ -314,7 +420,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if idea == "" {
 					idea = "Something chaotic and beautiful"
 				}
-				return m, launchCmd("new", append([]string{idea}, m.args...))
+				return m, startProcess("new", append([]string{idea}, m.args...), m.flags)
 			}
 			cmds = append(cmds, cmd)
 		}
@@ -337,12 +443,19 @@ func (m model) View() string {
 		"૮ ﾟ ﻌ ﾟ ა",          // Shocked
 	}
 	sparkles := []string{"｡･ﾟ✧", "✧･ﾟ｡", "｡･ﾟ★", "☆･ﾟ｡", "･ﾟ☆｡"}
+	thinkingFrames := []string{"… thinking …", "… scheming …", "… cooking bits …", "… brewing chaos …"}
+	if m.flags.NoEmoji || !m.theme.SupportsEmoji {
+		frames = []string{"(•ᴗ• )", "(•̀ᴗ• )✧", "(•ᴗ• )ノ", "(ᵕ•ᴗ•ᵕ)"}
+		sparkles = []string{"*", "✶", "✷", "✸", "✹"}
+		thinkingFrames = []string{"thinking", "scheming", "brewing", "loading"}
+	}
 
 	// Animation logic
 	idx := (m.frame / 4) % len(frames)
 	sIdx := (m.frame / 2) % len(sparkles)
 	currentDog := frames[idx]
 	currentSparkle := sparkles[sIdx]
+	thinking := thinkingFrames[(m.frame/3)%len(thinkingFrames)]
 
 	// Spring movement
 	pad := ""
@@ -351,30 +464,32 @@ func (m model) View() string {
 	}
 
 	// Composite Dog
-	dogRender := lipgloss.NewStyle().Foreground(colorHotPink).Render(pad + currentDog + " " + currentSparkle)
+	dogRender := lipgloss.NewStyle().Foreground(m.theme.Accent).Render(pad + currentDog + " " + currentSparkle)
+
+	animFrame, _ := animations.Frame(m.anim, m.animFrame)
 
 	// --- Views ---
 
 	// 1. Splash
 	splashContent := lipgloss.JoinVertical(lipgloss.Center,
-		styleTitle.Render("♥ VIBEPUP TUI ♥"),
+		m.styles.title.Render("♥ VIBEPUP TUI ♥"),
 		"",
 		dogRender,
 		"",
-		lipgloss.NewStyle().Foreground(colorCyan).Render("Initializing chaos engine..."),
-		lipgloss.NewStyle().Foreground(colorDarkGray).Render(m.currentPun),
+		lipgloss.NewStyle().Foreground(m.theme.AccentAlt).Render("Initializing chaos engine..."),
+		lipgloss.NewStyle().Foreground(m.theme.Muted).Render(m.currentPun),
 	)
 
 	// 2. Setup
 	if m.state == stateSplash {
-		return styleBox.Render(splashContent)
+		return m.styles.box.Render(splashContent)
 	}
 
 	if m.state == stateSetup {
-		return styleBox.Render(
+		return m.styles.box.Render(
 			lipgloss.JoinVertical(lipgloss.Left,
-				styleTitle.Render("♥ VIBE CHECK ♥"),
-				lipgloss.NewStyle().Foreground(colorText).Render("Ready to break some code?"),
+				m.styles.title.Render("♥ VIBE CHECK ♥"),
+				lipgloss.NewStyle().Foreground(m.theme.Foreground).Render("Ready to break some code?"),
 				"",
 				m.form.View(),
 				"",
@@ -385,10 +500,10 @@ func (m model) View() string {
 
 	// 3. New Project Input
 	if m.state == stateRunning && m.selected == "new" && m.newForm.State != huh.StateCompleted {
-		return styleBox.Render(
+		return m.styles.box.Render(
 			lipgloss.JoinVertical(lipgloss.Left,
-				styleTitle.Render("♥ GENESIS PROTOCOL ♥"),
-				lipgloss.NewStyle().Foreground(colorCyan).Render("What are we manifesting today?"),
+				m.styles.title.Render("♥ GENESIS PROTOCOL ♥"),
+				lipgloss.NewStyle().Foreground(m.theme.AccentAlt).Render("What are we manifesting today?"),
 				"",
 				m.newForm.View(),
 			),
@@ -400,35 +515,48 @@ func (m model) View() string {
 	if rand.Float32() > 0.9 {
 		statusMsg = "♥ DOING MY BEST ♥"
 	}
+	loader := animFrame
+	if m.flags.Quiet {
+		loader = ui.ClampWidth(loader, 6)
+	}
 
 	header := lipgloss.JoinVertical(lipgloss.Left,
-		styleStatus.Render(statusMsg),
-		lipgloss.NewStyle().Foreground(colorCyan).Render("MODE: "+strings.ToUpper(m.selected)),
+		m.styles.status.Render(statusMsg+" "+loader+"  "+thinking),
+		lipgloss.NewStyle().Foreground(m.theme.AccentAlt).Render("MODE: "+strings.ToUpper(m.selected)),
 		"",
-		lipgloss.NewStyle().Foreground(colorText).Render(currentSparkle+" "+m.currentPun),
+		lipgloss.NewStyle().Foreground(m.theme.Foreground).Render(currentSparkle+" "+m.currentPun),
 		"",
 		dogRender,
-		styleTip.Render(m.currentTip),
-		lipgloss.NewStyle().Foreground(colorDarkGray).Render("─ Matrix Stream ──────────────────────────"),
+		m.styles.tip.Render(m.currentTip),
+		lipgloss.NewStyle().Foreground(m.theme.Muted).Render("─ Matrix Stream ──────────────────────────"),
 	)
 
 	if !m.ready {
-		return styleBox.Render(header + "\nBooting up the matrix...")
+		return m.styles.box.Render(header + "\nBooting up the matrix...")
 	}
 
-	return styleBox.Render(
+	statusLine := m.statusBar.Render("q: quit", "snark:"+m.flags.Snark, m.viewport.Width)
+
+	return m.styles.box.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
 			header,
 			m.viewport.View(),
 			"",
+			statusLine,
 			m.help.View(m.keys),
 		),
 	)
 }
 
-func launchCmd(choice string, args []string) tea.Cmd {
+func startProcess(choice string, args []string, flags config.Flags) tea.Cmd {
 	return func() tea.Msg {
-		ctx := context.Background()
+		if !flags.ForceRun {
+			if !(isatty.IsTerminal(os.Stdout.Fd()) && isatty.IsTerminal(os.Stdin.Fd())) {
+				return processDoneMsg{err: fmt.Errorf("not a tty; use --force-run to override")}
+			}
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
 		if choice == "watch" {
 			args = append([]string{"--watch"}, args...)
 		}
@@ -444,13 +572,32 @@ func launchCmd(choice string, args []string) tea.Cmd {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.Stdin = os.Stdin
-		_ = cmd.Run()
-		return tea.Quit()
+
+		if err := cmd.Start(); err != nil {
+			cancel()
+			return processDoneMsg{err: err}
+		}
+
+		done := make(chan processDoneMsg, 1)
+		go func() {
+			err := cmd.Wait()
+			done <- processDoneMsg{err: err}
+			close(done)
+		}()
+
+		return processStartedMsg{cmd: cmd, cancel: cancel, done: done}
 	}
 }
 
 func main() {
-	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
+	flags := config.Parse()
+	m := initialModel(flags)
+	programOpts := []tea.ProgramOption{}
+	// default: do not force fullscreen/alt unless explicitly requested off
+	if !flags.NoAlt {
+		programOpts = append(programOpts, tea.WithAltScreen())
+	}
+	p := tea.NewProgram(m, programOpts...)
 	if _, err := p.Run(); err != nil {
 		fmt.Println("Oof, the puppy tripped.", err)
 		os.Exit(1)

@@ -190,5 +190,25 @@ Vibepup also supports manual config in `~/.config/ralph/config.json`:
 *   **Build Mode**: When `repo-map.md` exists, Vibepup executes tasks from `prd.md`.
 
 
+## 🎛️ TUI flags (Go)
+TUI lives in `npm-package/tui` (Go 1.22+). Helpful flags:
+
+- `--quiet` reduce motion/sass; `--dense` increase animation density.
+- `--no-emoji` force ASCII frames; `--theme <name>` swap palettes.
+- `--snark mild|spicy|unhinged` choose persona spice level.
+- `--anim <preset>` pick loader (e.g., `vhs-scan`, `matrix-rain`).
+- `--fx fire|matrix|none` sysc-Go header effect toggle (when wired).
+- `--perf-low` lower FPS; `--no-alt` avoid alt-screen; `--force-run` bypass TTY check (CI/non-interactive).
+
+Hotkeys: `q` quits (kills child process), `?` toggles help. Palette/anim/snark switching via command palette is planned.
+
+## 🛠️ Troubleshooting
+
+- **TUI fails in CI/non-TTY**: use `--force-run` to skip TTY enforcement; add `--no-alt` to avoid alt-screen.
+- **Multiple terminals keep running after quit**: press `q`; the TUI now tracks and kills the child process before exit.
+- **Emoji render poorly**: add `--no-emoji` or pick a theme with `--theme=mono-chill`.
+- **High CPU from animations**: add `--perf-low` or `--quiet` to slow ticks and reduce density.
+
+
 ## License
 MIT
