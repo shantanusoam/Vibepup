@@ -71,7 +71,15 @@ npm install -g vibepup
 bunx vibepup --watch
 ```
 
-### 2b. TUI mode (optional)
+### 2b. Windows (WSL vs Native)
+Vibepup supports both WSL2 and Windows-native modes. On Windows TTYs, you’ll be prompted to choose a mode when no flag is provided.
+- **WSL2 (Recommended):** Full Linux parity. Use `vibepup --wsl` or `vibepup --platform=wsl`.
+- **Windows-native:** Simpler setup, but lacks bash/curl helpers and design-mode injection. Use `vibepup --windows` or `vibepup --platform=windows`.
+- **Auto-select:** Defaults to WSL if installed; otherwise falls back to Windows-native.
+
+**WSL note:** `wsl.exe` forwards arguments without path translation, so use WSL-formatted paths (e.g., `/home/...` or `/mnt/c/...`) when running via WSL. [Microsoft Path Docs](https://learn.microsoft.com/en-us/windows/wsl/filesystems#mixing-linux-and-windows-commands).
+
+### 2c. TUI mode (optional)
 ```bash
 vibepup --tui
 ```
@@ -191,4 +199,3 @@ RALPH_MODEL_OVERRIDE="openai/gpt-4o" vibepup
 *   **Handling "Stuck" Agents**: If Ralph keeps trying the same failing command, edit `prd.state.json` and delete the failing entry. This forces a "memory wipe" of that specific failure.
 *   **Custom Skills**: Ralph respects your local OpenCode skills. If you have a `~/.config/opencode/skills/my-skill.md`, you can instruct Ralph to use it in `prd.md` via natural language: *"Use the my-skill skill to deploy this."*
 *   **Debug Mode**: To see exactly what arguments are being passed to the agent, inspect the `run_agent` function in `global/ralph`.
-

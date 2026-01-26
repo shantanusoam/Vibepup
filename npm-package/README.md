@@ -35,12 +35,43 @@ Most AI agents are black boxes that overwrite your files and get stuck in loops.
 ## 🚀 Get Started
 
 ### ✅ Works Everywhere
-Linux, macOS, and Windows (via Git Bash or WSL). Vibepup is portable and requires only Bash + `opencode`.
+Linux, macOS, and Windows. **Recommended:** use WSL2 on Windows for full Linux parity.
 
 ### 1. Install
 ```bash
 npm install -g vibepup
 ```
+
+### Windows (choose your mode)
+
+Vibepup supports two modes on Windows. If a TTY is detected, it will prompt you to choose; otherwise, it defaults to WSL if installed.
+
+**Recommended: WSL2 Mode**
+Best parity with Linux/macOS. Requires [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) installed.
+```bash
+vibepup --platform=wsl
+# or
+vibepup --wsl
+```
+*   **Note:** When using WSL mode, run from a WSL shell or ensure paths are WSL-formatted (e.g., `/home/...` or `/mnt/c/...`). `wsl.exe` forwards arguments without path translation. [Microsoft Path Docs](https://learn.microsoft.com/en-us/windows/wsl/filesystems#mixing-linux-and-windows-commands).
+
+**Windows-native Mode**
+Simpler setup, but with limitations.
+```bash
+vibepup --platform=windows
+# or
+vibepup --windows
+```
+
+**Windows-native Limitations:**
+- **No Bash/Curl Helpers:** Linux-specific shell scripts or `curl`-based skills may fail.
+- **Reduced Parity:** Some advanced agent behaviors optimized for Linux environments might be unavailable.
+- **No Design-Mode Injection:** Environment-based skill injection (like `DESIGN_MODE`) is not supported in native mode.
+- **Path Differences:** Uses Windows backslashes (`\`) which can occasionally confuse agents expecting POSIX paths.
+
+**Auto-selection Behavior:**
+- If WSL is detected, Vibepup defaults to WSL mode unless explicitly overridden.
+- Use `--platform=windows` or `--windows` to force native mode.
 
 ### 1b. bunx (no global install)
 ```bash
