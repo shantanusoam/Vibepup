@@ -13,6 +13,7 @@ type Flags struct {
 	FX       string
 	NoAlt    bool
 	ForceRun bool
+	Runner   string
 }
 
 func Parse() Flags {
@@ -27,6 +28,7 @@ func Parse() Flags {
 	flag.StringVar(&f.FX, "fx", "fire", "sysc effect: fire|matrix|none")
 	flag.BoolVar(&f.NoAlt, "no-alt", true, "disable alt screen (stay in current terminal)")
 	flag.BoolVar(&f.ForceRun, "force-run", false, "run child process even if stdout is not a TTY")
+	flag.StringVar(&f.Runner, "runner", "", "path to runner script (internal use)")
 	flag.Parse()
 	return f
 }

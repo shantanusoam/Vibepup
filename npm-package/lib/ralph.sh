@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -o pipefail
 
 
 # --- Hardened Environment (Anti-Interactive) ---
@@ -144,28 +145,14 @@ fi
 # --- Smart Model Discovery ---
 get_available_models() {
     local PREF_MODELS=("$@")
-    local AVAILABLE_MODELS=()
+    local AVAILABLE_MODELS=("${PREF_MODELS[@]}")
     
-    echo "🔍 Verifying available models..." >&2
-    
-    local ALL_MODELS
-    ALL_MODELS=$(opencode models --refresh 2>/dev/null | grep -E "^[a-z0-9-]+/[a-z0-9.-]+" || true)
-    
-    for PREF in "${PREF_MODELS[@]}"; do
-        if echo "$ALL_MODELS" | grep -q "^$PREF$"; then
-            AVAILABLE_MODELS+=("$PREF")
-        fi
-    done
-    
-    if [ ${#AVAILABLE_MODELS[@]} -eq 0 ]; then
-        echo "⚠️  No preferred models found. Falling back to generic discovery." >&2
-        AVAILABLE_MODELS+=($(echo "$ALL_MODELS" | grep "gpt-4o" | head -n 1))
-        AVAILABLE_MODELS+=($(echo "$ALL_MODELS" | grep "claude-sonnet" | head -n 1))
-    fi
+    # Refresh models cache silently (ignoring errors) to ensure CLI is ready
+    opencode models --refresh >/dev/null 2>&1 || true
 
-    if [ ${#AVAILABLE_MODELS[@]} -eq 0 ]; then
-        AVAILABLE_MODELS=("opencode/grok-code")
-        echo "⚠️  Using fallback model: opencode/grok-code" >&2
+    # Always add a reliable fallback at the end if not present
+    if [[ ! " ${AVAILABLE_MODELS[*]} " =~ " opencode/grok-code " ]]; then
+         AVAILABLE_MODELS+=("opencode/grok-code")
     fi
     
     echo "${AVAILABLE_MODELS[@]}"
@@ -192,7 +179,6 @@ if [ "$MODE" == "new" ]; then
     # NOTE: We assume agents/architect.md is in lib/agents/
     opencode run "PROJECT IDEA: $PROJECT_IDEA" \
         --file "$ENGINE_DIR/agents/architect.md" \
-        --agent general \
         --model "$ARCHITECT_MODEL"
         
     echo "✅ Architect initialization complete."
@@ -368,6 +354,7 @@ while true; do
         MODELS=("${BUILD_MODELS[@]}")
     fi
 
+    echo "   Queue: ${MODELS[*]}"
     SUCCESS=false
     for MODEL in "${MODELS[@]}"; do
         echo "   Using: $MODEL"
@@ -378,7 +365,7 @@ while true; do
         
         RESPONSE=$(cat "$ITER_DIR/agent_response.txt")
 
-        if echo "$RESPONSE" | grep -qi "not supported\|ModelNotFoundError\|Make sure the model is enabled"; then
+        if echo "$RESPONSE" | grep -Eiq "not supported|ModelNotFoundError|Make sure the model is enabled"; then
             echo "   ⚠️  Model $MODEL not supported. Falling back..."
             continue
         fi

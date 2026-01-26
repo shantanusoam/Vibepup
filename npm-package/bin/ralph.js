@@ -91,7 +91,8 @@ async function main() {
      const binPath = path.join(tuiDir, binName);
 
      if (fs.existsSync(binPath)) {
-       const tui = spawn(binPath, args, shellOptions);
+       const tuiArgs = ['--runner', scriptPath, ...args];
+       const tui = spawn(binPath, tuiArgs, shellOptions);
        tui.on('error', (err) => {
          console.error('❌ Failed to start Vibepup TUI.');
          console.error(String(err));
@@ -102,7 +103,8 @@ async function main() {
      }
 
      if (os.platform() !== 'win32' && fs.existsSync(tuiDir)) {
-       const goCmd = spawn('go', ['run', '.', ...args], { ...shellOptions, cwd: tuiDir });
+       const goArgs = ['run', '.', '--runner', scriptPath, ...args];
+       const goCmd = spawn('go', goArgs, { ...shellOptions, cwd: tuiDir });
        goCmd.on('error', (err) => {
          console.error('❌ Failed to start Vibepup TUI.');
          console.error(String(err));

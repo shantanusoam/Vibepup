@@ -1,6 +1,6 @@
 # Vibepup npm Publishing (from any machine)
 
-## 0) Test from build (before pushing to dev npm)
+cd np   ## 0) Test from build (before pushing to dev npm)
 
 Run and test the package **from the built artifacts** before publishing.
 

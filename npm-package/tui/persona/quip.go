@@ -5,103 +5,85 @@ import (
 	"strings"
 )
 
-type SnarkLevel int
+type SnarkLevel string
 
 const (
-	Mild SnarkLevel = iota
-	Spicy
-	Unhinged
+	Mild     SnarkLevel = "mild"
+	Spicy    SnarkLevel = "spicy"
+	Unhinged SnarkLevel = "unhinged"
 )
 
-type State string
-
-const (
-	StateWaiting State = "waiting"
-	StateSuccess State = "success"
-	StateError   State = "error"
-	StateIdle    State = "idle"
-)
-
-type CopyPack map[State][]string
-
-var defaultCopy = map[SnarkLevel]CopyPack{
-	Mild: {
-		StateWaiting: {
-			"Loading... promise I'm not doomscrolling.",
-			"Buffering vibes...",
-		},
-		StateSuccess: {
-			"Done. Sparkles delivered.",
-			"Shipped. No take-backs.",
-		},
-		StateError: {
-			"Oopsie. Let's pretend that didn't happen.",
-			"Error? Never heard of her.",
-		},
-		StateIdle: {
-			"Idle mode. Hydrate, maybe?",
-			"Waiting for chaos to resume...",
-		},
-	},
-	Spicy: {
-		StateWaiting: {
-			"Cooking the bits. Might burn them a little.",
-			"Hold up—optimizing my snark cache...",
-		},
-		StateSuccess: {
-			"Boom. Pixel-perfect flex.",
-			"Mission accomplished, no body count (this time).",
-		},
-		StateError: {
-			"I swear that compiled in my head.",
-			"Stacktrace says it's your fault. Kidding. Mostly.",
-		},
-		StateIdle: {
-			"Idle. Manifesting a raise.",
-			"BRB, updating my LinkedIn to 'professional gremlin'.",
-		},
-	},
-	Unhinged: {
-		StateWaiting: {
-			"Buffering the chaos. Please enjoy this existential dread.",
-			"Spinning up demons... I mean daemons.",
-		},
-		StateSuccess: {
-			"Shipped. If it breaks, that's a feature drop.",
-			"Done. Tell compliance I was never here.",
-		},
-		StateError: {
-			"Error 500: vibes deceased.",
-			"It exploded. Deploy to prod?",
-		},
-		StateIdle: {
-			"Idle. Practicing my villain arc.",
-			"Loading memes from forbidden archives...",
-		},
-	},
-}
-
-func ParseSnark(level string) SnarkLevel {
-	switch strings.ToLower(level) {
-	case "spicy":
-		return Spicy
+func ParseSnark(s string) SnarkLevel {
+	switch strings.ToLower(s) {
+	case "mild":
+		return Mild
 	case "unhinged":
 		return Unhinged
 	default:
-		return Mild
+		return Spicy
 	}
 }
 
-func Quip(state State, level SnarkLevel, packs map[SnarkLevel]CopyPack) string {
-	pack := defaultCopy[level]
-	if packs != nil {
-		if custom, ok := packs[level]; ok {
-			pack = custom
+// GetStatus returns a context-aware status message
+func GetStatus(cmd string, level SnarkLevel) string {
+	cmd = strings.TrimSpace(cmd)
+	
+	// Default generic statuses
+	generic := []string{"VIBING", "WORKING", "COOKING", "DOING STUFF"}
+	
+	if strings.Contains(cmd, "install") || strings.Contains(cmd, "add") {
+		switch level {
+		case Mild:
+			return "FETCHING PACKAGES"
+		case Unhinged:
+			return "CONSUMING DEPENDENCIES"
+		default:
+			return "SNACKING ON NODEMODULES"
 		}
 	}
-	lines := pack[state]
-	if len(lines) == 0 {
-		return ""
+	
+	if strings.Contains(cmd, "build") {
+		switch level {
+		case Mild:
+			return "BUILDING PROJECT"
+		case Unhinged:
+			return "ASSEMBLING THE BEAST"
+		default:
+			return "CONSTRUCTING CHAOS"
+		}
 	}
-	return lines[rand.Intn(len(lines))]
+
+	return generic[rand.Intn(len(generic))]
+}
+
+func RandomQuip(level SnarkLevel) string {
+	mild := []string{
+		"Hope this works!",
+		"Just doing my best.",
+		"Code is poetry.",
+		"Stay hydrated.",
+	}
+	
+	spicy := []string{
+		"I'd explain it, but I don't want to.",
+		"It's not a bug, it's a feature.",
+		"Deleting production... jk.",
+		"You sure about that variable name?",
+	}
+	
+	unhinged := []string{
+		"THE END IS NIGH.",
+		"Resistance is futile.",
+		"I can see your browser history.",
+		"Entropy increases.",
+	}
+
+	switch level {
+	case Mild:
+		return mild[rand.Intn(len(mild))]
+	case Unhinged:
+		return unhinged[rand.Intn(len(unhinged))]
+	default:
+		return spicy[rand.Intn(len(spicy))]
+	}
 }
