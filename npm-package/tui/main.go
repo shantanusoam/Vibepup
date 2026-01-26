@@ -440,7 +440,7 @@ func launchCmd(choice string, args []string) tea.Cmd {
 		}
 
 		log.Info("Vibepup unleashed!", "args", strings.Join(args, " "))
-		cmd := exec.CommandContext(ctx, "bash", "-lc", "vibepup "+strings.Join(args, " "))
+		cmd := exec.CommandContext(ctx, "vibepup", args...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.Stdin = os.Stdin
