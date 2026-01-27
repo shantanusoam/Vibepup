@@ -93,6 +93,11 @@ vibepup --tui
 vibepup free
 ```
 
+### 1f. Doctor (diagnose setup issues)
+```bash
+vibepup doctor
+```
+
 ### 2. Fetch!
 Go to any empty folder and tell Vibepup what to build.
 
@@ -134,6 +139,52 @@ Vibepup works out of the box. For the easiest free-tier bootstrap, run:
 
 ```bash
 vibepup free
+```
+
+### ✅ Full Onboarding (step-by-step)
+
+#### Step 0: Diagnose (recommended)
+```bash
+vibepup doctor
+```
+This checks Node/npm/opencode and your model registry.
+
+#### Step 1: Install Node 20+
+Free auth requires Node 20+.
+- **WSL/Linux:** `nvm install 20 && nvm use 20`
+- **Windows:** https://nodejs.org/en/download
+
+#### Step 2: Fix npm permissions (WSL/Linux)
+If npm fails with `EACCES`:
+```bash
+mkdir -p ~/.npm-global
+npm config set prefix ~/.npm-global
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+Then retry the install.
+
+#### Step 3: Install opencode
+```bash
+npm install -g opencode-ai
+```
+
+#### Step 4: Free-tier auth
+```bash
+npm install -g opencode-antigravity-auth
+opencode auth login antigravity
+opencode models --refresh
+```
+
+If you cannot open a browser:
+```bash
+opencode auth print-token antigravity
+export OPENCODE_ANTIGRAVITY_TOKEN="<token>"
+```
+
+#### Step 5: Run Vibepup
+```bash
+vibepup --watch
 ```
 
 If `opencode` is missing, Vibepup will try to install it on Linux/macOS and then guide you. You can also set up a free tier manually:

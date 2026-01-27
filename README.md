@@ -89,6 +89,11 @@ vibepup --tui
 vibepup free
 ```
 
+### 2d. Doctor (diagnose setup issues)
+```bash
+vibepup doctor
+```
+
 ### 3. Clone & Setup (engine-only)
 Clone this repository to your preferred location (e.g., `~/Projects/personal/ralph-project`):
 
@@ -176,6 +181,53 @@ BUILD_MODELS_PREF=(
 
 **"ModelNotFoundError"**
 - Run `opencode models --refresh` to update your local model cache. Vibepup auto-discovers available models at startup.
+
+---
+
+## ✅ Full Onboarding (step-by-step)
+
+### Step 0: Diagnose (recommended)
+```bash
+vibepup doctor
+```
+Checks Node/npm/opencode and your model registry.
+
+### Step 1: Install Node 20+
+Free auth requires Node 20+.
+- **WSL/Linux:** `nvm install 20 && nvm use 20`
+- **Windows:** https://nodejs.org/en/download
+
+### Step 2: Fix npm permissions (WSL/Linux)
+If npm fails with `EACCES`:
+```bash
+mkdir -p ~/.npm-global
+npm config set prefix ~/.npm-global
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Step 3: Install opencode
+```bash
+npm install -g opencode-ai
+```
+
+### Step 4: Free-tier auth
+```bash
+npm install -g opencode-antigravity-auth
+opencode auth login antigravity
+opencode models --refresh
+```
+
+If you cannot open a browser:
+```bash
+opencode auth print-token antigravity
+export OPENCODE_ANTIGRAVITY_TOKEN="<token>"
+```
+
+### Step 5: Run Vibepup
+```bash
+vibepup --watch
+```
 
 ## 🧰 Advanced Usage
 
