@@ -35,8 +35,8 @@ async function promptPlatform() {
 }
 
 async function main() {
-  const scriptPath = path.join(__dirname, '../lib/ralph.sh');
-  const windowsRunnerPath = path.join(__dirname, '../lib/ralph-win.js');
+  const scriptPath = path.join(__dirname, '../lib/runner/index.js');
+  const windowsRunnerPath = path.join(__dirname, '../lib/runner/index.js');
   const allArgs = process.argv.slice(2);
   const useTui = allArgs.includes('--tui');
 
@@ -90,9 +90,9 @@ async function main() {
      const binName = os.platform() === 'win32' ? 'vibepup-tui.exe' : 'vibepup-tui';
      const binPath = path.join(tuiDir, binName);
 
-     if (fs.existsSync(binPath)) {
-       const tuiArgs = ['--runner', scriptPath, ...args];
-       const tui = spawn(binPath, tuiArgs, shellOptions);
+      if (fs.existsSync(binPath)) {
+        const tuiArgs = ['--runner', scriptPath, ...args];
+        const tui = spawn(binPath, tuiArgs, shellOptions);
        tui.on('error', (err) => {
          console.error('❌ Failed to start Vibepup TUI.');
          console.error(String(err));
@@ -102,9 +102,9 @@ async function main() {
        return;
      }
 
-     if (os.platform() !== 'win32' && fs.existsSync(tuiDir)) {
-       const goArgs = ['run', '.', '--runner', scriptPath, ...args];
-       const goCmd = spawn('go', goArgs, { ...shellOptions, cwd: tuiDir });
+      if (os.platform() !== 'win32' && fs.existsSync(tuiDir)) {
+        const goArgs = ['run', '.', '--runner', scriptPath, ...args];
+        const goCmd = spawn('go', goArgs, { ...shellOptions, cwd: tuiDir });
        goCmd.on('error', (err) => {
          console.error('❌ Failed to start Vibepup TUI.');
          console.error(String(err));
@@ -120,7 +120,7 @@ async function main() {
      process.exit(1);
    }
 
-   let command = 'bash';
+   let command = process.execPath;
    let cmdArgs = [scriptPath, ...args];
 
    if (isWindows) {
@@ -146,21 +146,21 @@ async function main() {
 
      const normalizedPlatform = (selectedPlatform || '').toLowerCase();
 
-     if (normalizedPlatform === 'wsl' || (!normalizedPlatform && wslAvailable)) {
-       if (!wslAvailable) {
-         console.error('❌ WSL not found. Install WSL2 or use --platform=windows.');
-         process.exit(1);
-       }
-       const wslScriptPath = toWslPath(scriptPath);
-       const wslCwd = toWslPath(process.cwd());
-       command = 'wsl.exe';
-       cmdArgs = ['--cd', wslCwd, '--', 'bash', wslScriptPath, ...args];
-     } else {
-       console.warn('⚠️  Using Windows-native mode.');
-       console.warn('   💡 Tip: install WSL2 for full Linux parity.');
-       command = process.execPath;
-       cmdArgs = [windowsRunnerPath, ...args];
-     }
+      if (normalizedPlatform === 'wsl' || (!normalizedPlatform && wslAvailable)) {
+        if (!wslAvailable) {
+          console.error('❌ WSL not found. Install WSL2 or use --platform=windows.');
+          process.exit(1);
+        }
+        const wslScriptPath = toWslPath(scriptPath);
+        const wslCwd = toWslPath(process.cwd());
+        command = 'wsl.exe';
+        cmdArgs = ['--cd', wslCwd, '--', 'node', wslScriptPath, ...args];
+      } else {
+        console.warn('⚠️  Using Windows-native mode.');
+        console.warn('   💡 Tip: install WSL2 for full Linux parity.');
+        command = process.execPath;
+        cmdArgs = [windowsRunnerPath, ...args];
+      }
    }
 
   const vibepup = spawn(command, cmdArgs, shellOptions);
