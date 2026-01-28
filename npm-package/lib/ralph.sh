@@ -87,7 +87,7 @@ while [[ "$#" -gt 0 ]]; do
     esac
 done
 
-echo "🐾 Vibepup v1.0 (CLI Mode)"
+echo "🐾 Vibepup v1.0.3 (CLI Mode)"
 echo "   Engine:  $ENGINE_DIR"
 echo "   Context: $PROJECT_DIR"
 
